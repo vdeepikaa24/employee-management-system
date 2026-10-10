@@ -2,6 +2,7 @@ package com.example.employeemanagementsystem.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -34,6 +35,14 @@ public class GlobalExceptionHandler {
 
         return buildResponse(HttpStatus.BAD_REQUEST,
                 "Request validation failed", request, fieldErrors);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiErrorResponse> handleUnreadableRequestBody(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST,
+                "Request body is missing or contains invalid JSON", request, Map.of());
     }
 
     @ExceptionHandler(ResponseStatusException.class)

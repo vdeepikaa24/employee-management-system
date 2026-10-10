@@ -1,0 +1,5 @@
+warning: in the working copy of 'employeemanagementsystem/.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'employeemanagementsystem/pom.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'employeemanagementsystem/src/main/java/com/example/employeemanagementsystem/AuditingConfig.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'employeemanagementsystem/src/main/java/com/example/employeemanagementsystem/exception/GlobalExceptionHandler.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'employeemanagementsystem/src/main/resources/application.properties', LF will be replaced by CRLF the next time Git touches it
