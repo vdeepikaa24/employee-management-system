@@ -1,6 +1,7 @@
 package com.example.employeemanagementsystem.controller;
 
-import com.example.employeemanagementsystem.Employee;
+import com.example.employeemanagementsystem.dto.EmployeeRequest;
+import com.example.employeemanagementsystem.dto.EmployeeResponse;
 import com.example.employeemanagementsystem.projection.EmployeeSummary;
 import com.example.employeemanagementsystem.projection.EmployeeView;
 import com.example.employeemanagementsystem.service.EmployeeService;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -24,18 +26,18 @@ public class EmployeeController {
     }
 
     @GetMapping
-    public List<Employee> getAllEmployees() {
+    public List<EmployeeResponse> getAllEmployees() {
         return employeeService.findAll();
     }
 
     @GetMapping("/by-department/{departmentId}")
-    public List<Employee> getEmployeesByDepartment(
+    public List<EmployeeResponse> getEmployeesByDepartment(
             @PathVariable Long departmentId) {
         return employeeService.findByDepartmentId(departmentId);
     }
 
     @GetMapping("/by-department-name/{departmentName}")
-    public List<Employee> getEmployeesByDepartmentName(
+    public List<EmployeeResponse> getEmployeesByDepartmentName(
             @PathVariable String departmentName) {
         return employeeService.findByDepartmentName(departmentName);
     }
@@ -53,46 +55,41 @@ public class EmployeeController {
     }
 
     @GetMapping("/search")
-    public Page<Employee> searchEmployees(
+    public Page<EmployeeResponse> searchEmployees(
             @RequestParam(defaultValue = "") String name,
             @PageableDefault(size = 10, sort = "name") Pageable pageable) {
         return employeeService.searchByName(name, pageable);
     }
 
     @GetMapping("/{id}")
-    public Employee getEmployeeById(@PathVariable Long id) {
+    public EmployeeResponse getEmployeeById(@PathVariable Long id) {
         return employeeService.findById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Employee createEmployee(@RequestBody Employee employee) {
-        return employeeService.save(employee);
+    public EmployeeResponse createEmployee(
+            @Valid @RequestBody EmployeeRequest request) {
+        return employeeService.create(request);
     }
 
     @PostMapping("/batch")
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Integer> createEmployeesBatch(
-            @RequestBody List<Employee> employees) {
+            @Valid @RequestBody List<@Valid EmployeeRequest> employees) {
         return Map.of("inserted", employeeService.saveBatch(employees));
     }
 
     @PutMapping("/{id}")
-    public Employee updateEmployee(
+    public EmployeeResponse updateEmployee(
             @PathVariable Long id,
-            @RequestBody Employee updatedEmployee) {
-
-        Employee existingEmployee = employeeService.findById(id);
-        existingEmployee.setName(updatedEmployee.getName());
-        existingEmployee.setEmail(updatedEmployee.getEmail());
-
-        return employeeService.save(existingEmployee);
+            @Valid @RequestBody EmployeeRequest request) {
+        return employeeService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteEmployee(@PathVariable Long id) {
-        employeeService.findById(id);
         employeeService.deleteById(id);
     }
 }

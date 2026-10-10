@@ -1,10 +1,13 @@
 package com.example.employeemanagementsystem.service;
 
+import com.example.employeemanagementsystem.Department;
 import com.example.employeemanagementsystem.Employee;
+import com.example.employeemanagementsystem.dto.EmployeeRequest;
+import com.example.employeemanagementsystem.dto.EmployeeResponse;
 import com.example.employeemanagementsystem.projection.EmployeeSummary;
 import com.example.employeemanagementsystem.projection.EmployeeView;
-import com.example.employeemanagementsystem.repository.EmployeeRepository;
 import com.example.employeemanagementsystem.repository.DepartmentRepository;
+import com.example.employeemanagementsystem.repository.EmployeeRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.data.domain.Page;
@@ -19,6 +22,8 @@ import java.util.List;
 @Service
 public class EmployeeService {
 
+    private static final int BATCH_SIZE = 25;
+
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
 
@@ -31,71 +36,112 @@ public class EmployeeService {
         this.departmentRepository = departmentRepository;
     }
 
-    public List<Employee> findAll() {
-        return employeeRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<EmployeeResponse> findAll() {
+        return employeeRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    public Employee findById(Long id) {
-        return employeeRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Employee not found: " + id
-                ));
+    @Transactional(readOnly = true)
+    public EmployeeResponse findById(Long id) {
+        return toResponse(getEmployee(id));
     }
 
-    public List<Employee> findByDepartmentId(Long departmentId) {
-        return employeeRepository.findEmployeesByDepartmentId(departmentId);
+    @Transactional(readOnly = true)
+    public List<EmployeeResponse> findByDepartmentId(Long departmentId) {
+        return employeeRepository.findEmployeesByDepartmentId(departmentId)
+                .stream().map(this::toResponse).toList();
     }
 
-    public List<Employee> findByDepartmentName(String departmentName) {
-        return employeeRepository.findUsingNamedQuery(departmentName);
+    @Transactional(readOnly = true)
+    public List<EmployeeResponse> findByDepartmentName(String departmentName) {
+        return employeeRepository.findUsingNamedQuery(departmentName)
+                .stream().map(this::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<EmployeeSummary> findProjectionByDepartmentId(Long departmentId) {
         return employeeRepository.findProjectedByDepartmentId(departmentId);
     }
 
+    @Transactional(readOnly = true)
     public List<EmployeeView> findEmployeeViewsByDepartmentId(Long departmentId) {
         return employeeRepository.findEmployeeViewsByDepartmentId(departmentId);
     }
 
-    public Page<Employee> searchByName(String name, Pageable pageable) {
-        return employeeRepository.findByNameContainingIgnoreCase(name, pageable);
-    }
-
-    public Employee save(Employee employee) {
-        return employeeRepository.save(employee);
+    @Transactional(readOnly = true)
+    public Page<EmployeeResponse> searchByName(String name, Pageable pageable) {
+        return employeeRepository.findByNameContainingIgnoreCase(name, pageable)
+                .map(this::toResponse);
     }
 
     @Transactional
-    public int saveBatch(List<Employee> employees) {
-        final int batchSize = 25;
+    public EmployeeResponse create(EmployeeRequest request) {
+        Employee employee = new Employee();
+        employee.setName(request.name());
+        employee.setEmail(request.email());
+        employee.setDepartment(getDepartment(request.departmentId()));
+        return toResponse(employeeRepository.save(employee));
+    }
 
-        for (int i = 0; i < employees.size(); i++) {
-            Employee employee = employees.get(i);
-            if (employee.getDepartment() == null
-                    || employee.getDepartment().getId() == null) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Each employee must include a department id"
-                );
-            }
+    @Transactional
+    public EmployeeResponse update(Long id, EmployeeRequest request) {
+        Employee employee = getEmployee(id);
+        employee.setName(request.name());
+        employee.setEmail(request.email());
+        employee.setDepartment(getDepartment(request.departmentId()));
+        return toResponse(employeeRepository.save(employee));
+    }
 
+    @Transactional
+    public int saveBatch(List<EmployeeRequest> requests) {
+        for (int i = 0; i < requests.size(); i++) {
+            EmployeeRequest request = requests.get(i);
+            Employee employee = new Employee();
+            employee.setName(request.name());
+            employee.setEmail(request.email());
             employee.setDepartment(departmentRepository.getReferenceById(
-                    employee.getDepartment().getId()));
+                    request.departmentId()));
             entityManager.persist(employee);
 
-            if ((i + 1) % batchSize == 0) {
+            if ((i + 1) % BATCH_SIZE == 0) {
                 entityManager.flush();
                 entityManager.clear();
             }
         }
 
         entityManager.flush();
-        return employees.size();
+        return requests.size();
     }
 
+    @Transactional
     public void deleteById(Long id) {
-        employeeRepository.deleteById(id);
+        employeeRepository.delete(getEmployee(id));
+    }
+
+    private Employee getEmployee(Long id) {
+        return employeeRepository.findWithDepartmentById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Employee not found: " + id));
+    }
+
+    private Department getDepartment(Long id) {
+        return departmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Department not found: " + id));
+    }
+
+    private EmployeeResponse toResponse(Employee employee) {
+        return new EmployeeResponse(
+                employee.getId(),
+                employee.getName(),
+                employee.getEmail(),
+                employee.getDepartment().getId(),
+                employee.getDepartment().getName(),
+                employee.getCreatedBy(),
+                employee.getCreatedDate(),
+                employee.getLastModifiedBy(),
+                employee.getLastModifiedDate());
     }
 }

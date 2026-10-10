@@ -1,7 +1,9 @@
 package com.example.employeemanagementsystem.controller;
 
-import com.example.employeemanagementsystem.Department;
+import com.example.employeemanagementsystem.dto.DepartmentRequest;
+import com.example.employeemanagementsystem.dto.DepartmentResponse;
 import com.example.employeemanagementsystem.service.DepartmentService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
@@ -19,50 +21,46 @@ public class DepartmentController {
     }
 
     @GetMapping
-    public List<Department> getAllDepartments() {
+    public List<DepartmentResponse> getAllDepartments() {
         return departmentService.findAll();
     }
 
     @GetMapping("/by-name/{name}")
-    public Department getDepartmentByName(@PathVariable String name) {
+    public DepartmentResponse getDepartmentByName(@PathVariable String name) {
         return departmentService.findByNameUsingNamedQuery(name)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Department not found: " + name));
     }
 
     @GetMapping("/with-employees/{name}")
-    public Department getDepartmentWithEmployeesByName(@PathVariable String name) {
+    public DepartmentResponse getDepartmentWithEmployeesByName(@PathVariable String name) {
         return departmentService.findWithEmployeesByNameUsingNamedQuery(name)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Department not found: " + name));
     }
 
     @GetMapping("/{id}")
-    public Department getDepartmentById(@PathVariable Long id) {
+    public DepartmentResponse getDepartmentById(@PathVariable Long id) {
         return departmentService.findById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Department createDepartment(@RequestBody Department department) {
-        return departmentService.save(department);
+    public DepartmentResponse createDepartment(
+            @Valid @RequestBody DepartmentRequest request) {
+        return departmentService.create(request);
     }
 
     @PutMapping("/{id}")
-    public Department updateDepartment(
+    public DepartmentResponse updateDepartment(
             @PathVariable Long id,
-            @RequestBody Department updatedDepartment) {
-
-        Department existingDepartment = departmentService.findById(id);
-        existingDepartment.setName(updatedDepartment.getName());
-
-        return departmentService.save(existingDepartment);
+            @Valid @RequestBody DepartmentRequest request) {
+        return departmentService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteDepartment(@PathVariable Long id) {
-        departmentService.findById(id);
         departmentService.deleteById(id);
     }
 }
