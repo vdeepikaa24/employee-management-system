@@ -1,6 +1,7 @@
 package com.example.employeemanagementsystem;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(properties = {
@@ -8,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
         "app.security.bootstrap-admin.username=ci-admin@example.com",
         "app.security.bootstrap-admin.password=CiAdminPassword123!"
 })
+@ActiveProfiles("test")
 class EmployeemanagementsystemApplicationTests {
 
     @Test

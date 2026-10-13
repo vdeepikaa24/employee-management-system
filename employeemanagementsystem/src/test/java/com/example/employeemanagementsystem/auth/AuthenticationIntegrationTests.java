@@ -3,6 +3,7 @@ package com.example.employeemanagementsystem.auth;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "app.security.bootstrap-admin.username=admin-test@example.com",
         "app.security.bootstrap-admin.password=TestAdminPassword123!"
 })
+@ActiveProfiles("test")
 class AuthenticationIntegrationTests {
 
     private static final String USER_PASSWORD = "TestUserPassword123!";
