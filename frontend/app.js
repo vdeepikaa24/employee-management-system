@@ -196,6 +196,73 @@
         }
       }
 
+      function csvCell(value) {
+        let text = String(value ?? '');
+        if (/^[\s\uFEFF]*[=+@\-]/.test(text)) text = `'${text}`;
+        return `"${text.replace(/"/g, '""')}"`;
+      }
+
+      async function exportEmployeesCsv() {
+        const button = byId('exportCsvButton');
+        button.disabled = true;
+        button.textContent = 'Preparing CSV…';
+        try {
+          const name = byId('searchInput').value.trim();
+          state.name = name;
+          const params = new URLSearchParams({
+            name,
+            page: '0',
+            size: '100',
+            sort: `name,${state.sort}`
+          });
+          if (state.departmentId) params.set('departmentId', state.departmentId);
+
+          const firstPage = await api(`/api/employees/search?${params}`);
+          const employees = [...firstPage.content];
+          for (let pageNumber = 1; pageNumber < firstPage.totalPages; pageNumber += 1) {
+            params.set('page', String(pageNumber));
+            const page = await api(`/api/employees/search?${params}`);
+            employees.push(...page.content);
+          }
+
+          if (!employees.length) {
+            notice(byId('appNotice'), 'There are no employees matching these filters to export.', 'info');
+            return;
+          }
+
+          const columns = [
+            ['Name', 'name'],
+            ['Email', 'email'],
+            ['Department', 'departmentName'],
+            ['Created by', 'createdBy'],
+            ['Created date', 'createdDate'],
+            ['Last modified by', 'lastModifiedBy'],
+            ['Last modified date', 'lastModifiedDate']
+          ];
+          const csv = [
+            columns.map(([heading]) => csvCell(heading)).join(','),
+            ...employees.map((employee) => columns
+              .map(([, key]) => csvCell(employee[key]))
+              .join(','))
+          ].join('\r\n');
+          const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+          const downloadUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.download = `employees-${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+          notice(byId('appNotice'), `Exported ${employees.length} employee${employees.length === 1 ? '' : 's'} to CSV.`, 'success');
+        } catch (error) {
+          notice(byId('appNotice'), error.message, 'error');
+        } finally {
+          button.disabled = false;
+          button.textContent = '↓ Export CSV';
+        }
+      }
+
       byId('loginForm').addEventListener('submit', async (event) => {
         event.preventDefault();
         clearNotice(byId('loginNotice'));
@@ -210,6 +277,7 @@
       byId('logoutButton').addEventListener('click', signOut);
       byId('addEmployeeButton').addEventListener('click', () => openEmployeeModal());
       byId('addDepartmentButton').addEventListener('click', openDepartmentModal);
+      byId('exportCsvButton').addEventListener('click', exportEmployeesCsv);
       byId('refreshButton').addEventListener('click', () => { loadEmployees(); loadDepartments(); });
       byId('previousButton').addEventListener('click', () => { if (state.page > 0) { state.page -= 1; loadEmployees(); } });
       byId('nextButton').addEventListener('click', () => { if (state.page + 1 < state.totalPages) { state.page += 1; loadEmployees(); } });

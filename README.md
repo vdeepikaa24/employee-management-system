@@ -99,4 +99,4 @@ npm install
 npm start
 ```
 
-Open `http://localhost:5500` in your browser and sign in with an API account. The frontend is served by Node.js and Express and supports employee search, paging, sorting, and (for admins) creating, editing, and deleting employees and creating departments. The API allows browser requests from the local frontend addresses on port `5500`.
+Open `http://localhost:5500` in your browser and sign in with an API account. The frontend is served by Node.js and Express and supports employee search, department filtering, paging, sorting, and CSV export of the matching employee list. Admins can create, edit, and delete employees and manage departments. The API allows browser requests from the local frontend addresses on port `5500`.
