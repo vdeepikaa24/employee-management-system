@@ -91,6 +91,47 @@ class AuthenticationIntegrationTests {
     }
 
     @Test
+    void employeeSearchAcceptsValidPaginationParameters() throws Exception {
+        String token = registerAndGetToken(uniqueEmail());
+
+        HttpResponse<String> response = get(
+                "/api/employees/search?name=&page=0&size=10&sort=name,asc", token);
+
+        assertEquals(200, response.statusCode(), response.body());
+        assertTrue(response.body().contains("\"size\":10"));
+    }
+
+    @Test
+    void employeeSearchRejectsNegativePage() throws Exception {
+        String token = registerAndGetToken(uniqueEmail());
+
+        HttpResponse<String> response = get(
+                "/api/employees/search?name=&page=-1&size=10", token);
+
+        assertEquals(400, response.statusCode(), response.body());
+    }
+
+    @Test
+    void employeeSearchRejectsPageSizeAboveLimit() throws Exception {
+        String token = registerAndGetToken(uniqueEmail());
+
+        HttpResponse<String> response = get(
+                "/api/employees/search?name=&page=0&size=101", token);
+
+        assertEquals(400, response.statusCode(), response.body());
+    }
+
+    @Test
+    void employeeSearchRejectsZeroPageSize() throws Exception {
+        String token = registerAndGetToken(uniqueEmail());
+
+        HttpResponse<String> response = get(
+                "/api/employees/search?name=&page=0&size=0", token);
+
+        assertEquals(400, response.statusCode(), response.body());
+    }
+
+    @Test
     void adminCanCreateDepartment() throws Exception {
         String adminToken = loginAndGetToken(
                 "admin-test@example.com", "TestAdminPassword123!");
