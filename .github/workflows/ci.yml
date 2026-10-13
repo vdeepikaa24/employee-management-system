@@ -14,6 +14,27 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: ems_ci
+          POSTGRES_USER: ems_ci_user
+          POSTGRES_PASSWORD: ems_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ems_ci_user -d ems_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_URL: jdbc:postgresql://localhost:5432/ems_ci
+      DB_DRIVER: org.postgresql.Driver
+      DB_USERNAME: ems_ci_user
+      DB_PASSWORD: ems_ci_password
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
