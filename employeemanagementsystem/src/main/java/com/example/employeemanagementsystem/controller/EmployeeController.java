@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import jakarta.validation.Valid;
 
 import java.util.List;
@@ -18,6 +19,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/employees")
 public class EmployeeController {
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final EmployeeService employeeService;
 
@@ -57,7 +60,18 @@ public class EmployeeController {
     @GetMapping("/search")
     public Page<EmployeeResponse> searchEmployees(
             @RequestParam(defaultValue = "") String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             @PageableDefault(size = 10, sort = "name") Pageable pageable) {
+        if (page < 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "page must be zero or greater");
+        }
+        if (size < 1 || size > MAX_PAGE_SIZE) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "size must be between 1 and " + MAX_PAGE_SIZE);
+        }
         return employeeService.searchByName(name, pageable);
     }
 
