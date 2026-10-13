@@ -46,4 +46,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Page<Employee> findByNameContainingIgnoreCase(
             String name,
             Pageable pageable);
+
+    Page<Employee> findByNameContainingIgnoreCaseAndDepartmentId(
+            String name,
+            Long departmentId,
+            Pageable pageable);
 }

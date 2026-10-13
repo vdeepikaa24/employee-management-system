@@ -1,6 +1,6 @@
 (() => {
       const API_BASE = 'http://localhost:8080';
-      const state = { token: '', role: '', email: '', page: 0, size: 10, sort: 'asc', name: '', totalPages: 0, departments: [], searchTimer: null };
+      const state = { token: '', role: '', email: '', page: 0, size: 10, sort: 'asc', name: '', departmentId: '', totalPages: 0, departments: [], searchTimer: null };
       const byId = (id) => document.getElementById(id);
       const loginView = byId('loginView');
       const appView = byId('appView');
@@ -83,6 +83,7 @@
       async function loadEmployees() {
         clearNotice(byId('appNotice'));
         const params = new URLSearchParams({ name: state.name, page: String(state.page), size: String(state.size), sort: `name,${state.sort}` });
+        if (state.departmentId) params.set('departmentId', state.departmentId);
         try {
           const page = await api(`/api/employees/search?${params}`);
           state.totalPages = page.totalPages;
@@ -113,6 +114,11 @@
       async function loadDepartments() {
         try {
           state.departments = await api('/api/departments');
+          const departmentFilter = byId('departmentFilter');
+          const selectedDepartmentId = state.departmentId;
+          departmentFilter.innerHTML = '<option value="">All departments</option>' + state.departments
+            .map((department) => `<option value="${department.id}">${escapeHtml(department.name)}</option>`).join('');
+          departmentFilter.value = selectedDepartmentId;
           byId('departmentSummary').textContent = `${state.departments.length} department${state.departments.length === 1 ? '' : 's'} in the organization`;
           byId('departmentList').innerHTML = state.departments.length
             ? state.departments.map((department) => `<li><span class="dept-dot"></span>${escapeHtml(department.name)}</li>`).join('')
@@ -183,6 +189,11 @@
       });
       byId('sortSelect').addEventListener('change', (event) => { state.sort = event.target.value; state.page = 0; loadEmployees(); });
       byId('sizeSelect').addEventListener('change', (event) => { state.size = Number(event.target.value); state.page = 0; loadEmployees(); });
+      byId('departmentFilter').addEventListener('change', (event) => {
+        state.departmentId = event.target.value;
+        state.page = 0;
+        loadEmployees();
+      });
       byId('closeModalButton').addEventListener('click', closeModal);
       document.querySelectorAll('.cancel-modal').forEach((button) => button.addEventListener('click', closeModal));
       modalBackdrop.addEventListener('click', (event) => { if (event.target === modalBackdrop) closeModal(); });

@@ -60,6 +60,7 @@ public class EmployeeController {
     @GetMapping("/search")
     public Page<EmployeeResponse> searchEmployees(
             @RequestParam(defaultValue = "") String name,
+            @RequestParam(required = false) Long departmentId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @PageableDefault(size = 10, sort = "name") Pageable pageable) {
@@ -72,7 +73,7 @@ public class EmployeeController {
                     HttpStatus.BAD_REQUEST,
                     "size must be between 1 and " + MAX_PAGE_SIZE);
         }
-        return employeeService.searchByName(name, pageable);
+        return employeeService.searchByNameAndDepartment(name, departmentId, pageable);
     }
 
     @GetMapping("/{id}")

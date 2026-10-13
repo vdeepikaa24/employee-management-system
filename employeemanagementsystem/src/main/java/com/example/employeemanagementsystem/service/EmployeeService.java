@@ -76,6 +76,17 @@ public class EmployeeService {
                 .map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
+    public Page<EmployeeResponse> searchByNameAndDepartment(
+            String name, Long departmentId, Pageable pageable) {
+        Page<Employee> employees = departmentId == null
+                ? employeeRepository.findByNameContainingIgnoreCase(name, pageable)
+                : employeeRepository.findByNameContainingIgnoreCaseAndDepartmentId(
+                        name, departmentId, pageable);
+        return employees
+                .map(this::toResponse);
+    }
+
     @Transactional
     public EmployeeResponse create(EmployeeRequest request) {
         Employee employee = new Employee();
