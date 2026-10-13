@@ -3,11 +3,14 @@ package com.example.employeemanagementsystem;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "app.security.jwt.secret=ci-test-secret-with-at-least-32-characters",
+        "app.security.bootstrap-admin.username=ci-admin@example.com",
+        "app.security.bootstrap-admin.password=CiAdminPassword123!"
+})
 class EmployeemanagementsystemApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
-
+    @Test
+    void contextLoads() {
+    }
 }
