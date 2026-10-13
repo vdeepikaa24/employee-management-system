@@ -17,6 +17,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     Optional<Employee> findByEmail(String email);
 
+    long countByDepartmentId(Long departmentId);
+
     @EntityGraph(attributePaths = "department")
     @Query("SELECT e FROM Employee e WHERE e.id = :id")
     Optional<Employee> findWithDepartmentById(@Param("id") Long id);

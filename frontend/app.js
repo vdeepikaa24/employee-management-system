@@ -121,8 +121,20 @@
           departmentFilter.value = selectedDepartmentId;
           byId('departmentSummary').textContent = `${state.departments.length} department${state.departments.length === 1 ? '' : 's'} in the organization`;
           byId('departmentList').innerHTML = state.departments.length
-            ? state.departments.map((department) => `<li><span class="dept-dot"></span>${escapeHtml(department.name)}</li>`).join('')
+            ? state.departments.map((department) => `
+                <li>
+                  <span class="department-label"><span class="dept-dot"></span>${escapeHtml(department.name)}</span>
+                  ${state.role === 'ADMIN' ? `<span class="department-actions"><button class="icon-button edit-department" data-id="${department.id}" type="button" title="Rename ${escapeHtml(department.name)}" aria-label="Rename ${escapeHtml(department.name)}">✎</button><button class="button button-danger delete-department" data-id="${department.id}" type="button">Delete</button></span>` : ''}
+                </li>`).join('')
             : '<li class="muted">No departments yet</li>';
+          byId('departmentList').querySelectorAll('.edit-department').forEach((button) => button.addEventListener('click', () => {
+            const department = state.departments.find((item) => String(item.id) === button.dataset.id);
+            if (department) openDepartmentModal(department);
+          }));
+          byId('departmentList').querySelectorAll('.delete-department').forEach((button) => button.addEventListener('click', () => {
+            const department = state.departments.find((item) => String(item.id) === button.dataset.id);
+            if (department) deleteDepartment(department);
+          }));
         } catch (error) {
           byId('departmentSummary').textContent = error.message;
         }
@@ -145,11 +157,13 @@
         byId('employeeName').focus();
       }
 
-      function openDepartmentModal() {
+      function openDepartmentModal(department = null) {
         byId('employeeForm').classList.add('hidden');
         byId('departmentForm').classList.remove('hidden');
-        byId('modalTitle').textContent = 'Add department';
-        byId('departmentName').value = '';
+        byId('modalTitle').textContent = department ? 'Rename department' : 'Add department';
+        byId('departmentId').value = department?.id || '';
+        byId('departmentName').value = department?.name || '';
+        byId('saveDepartmentButton').textContent = department ? 'Save changes' : 'Create department';
         modalBackdrop.classList.add('open');
         byId('departmentName').focus();
       }
@@ -164,6 +178,22 @@
           if (byId('employeeRows').children.length === 1 && state.page > 0) state.page -= 1;
           await loadEmployees();
         } catch (error) { notice(byId('appNotice'), error.message, 'error'); }
+      }
+
+      async function deleteDepartment(department) {
+        if (!window.confirm(`Delete the department "${department.name}"? This cannot be undone.`)) return;
+        try {
+          await api(`/api/departments/${department.id}`, { method: 'DELETE' });
+          if (state.departmentId === String(department.id)) {
+            state.departmentId = '';
+            byId('departmentFilter').value = '';
+          }
+          state.page = 0;
+          notice(byId('appNotice'), `Department "${department.name}" deleted.`, 'success');
+          await Promise.all([loadDepartments(), loadEmployees()]);
+        } catch (error) {
+          notice(byId('appNotice'), error.message, 'error');
+        }
       }
 
       byId('loginForm').addEventListener('submit', async (event) => {
@@ -220,11 +250,15 @@
 
       byId('departmentForm').addEventListener('submit', async (event) => {
         event.preventDefault();
+        const id = byId('departmentId').value;
         try {
-          await api('/api/departments', { method: 'POST', body: JSON.stringify({ name: byId('departmentName').value.trim() }) });
+          await api(id ? `/api/departments/${id}` : '/api/departments', {
+            method: id ? 'PUT' : 'POST',
+            body: JSON.stringify({ name: byId('departmentName').value.trim() })
+          });
           closeModal();
-          notice(byId('appNotice'), 'Department created.', 'success');
-          await loadDepartments();
+          notice(byId('appNotice'), id ? 'Department renamed.' : 'Department created.', 'success');
+          await Promise.all([loadDepartments(), loadEmployees()]);
         } catch (error) { notice(byId('appNotice'), error.message, 'error'); }
       });
 

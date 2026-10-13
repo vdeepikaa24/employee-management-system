@@ -70,7 +70,11 @@
     .side-heading { font-weight:750; margin-bottom:5px; }
     .side-copy { color:var(--muted); font-size:12px; line-height:1.55; margin:0 0 15px; }
     .department-list { list-style:none; margin:0; padding:0; display:grid; gap:9px; }
-    .department-list li { display:flex; align-items:center; gap:9px; padding:9px 10px; border:1px solid #273851; background:#0f1928; border-radius:10px; font-size:12px; }
+    .department-list li { display:flex; align-items:center; justify-content:space-between; gap:9px; padding:8px 9px; border:1px solid #273851; background:#0f1928; border-radius:10px; font-size:12px; }
+    .department-label { display:flex; align-items:center; gap:9px; min-width:0; }
+    .department-actions { display:flex; align-items:center; gap:6px; }
+    .department-actions .icon-button { width:30px; height:30px; }
+    .department-actions .button-danger { padding:6px 8px; font-size:11px; }
     .dept-dot { width:8px; height:8px; background:var(--accent); border-radius:50%; }
     .notice { display:none; padding:11px 13px; margin:0 0 14px; border:1px solid #526e9f; background:#182943; color:#e2ecff; border-radius:11px; font-size:13px; }
     .notice.error { display:block; border-color:#783e4b; background:#311d2a; color:#ffd2d6; }

@@ -4,6 +4,7 @@ import com.example.employeemanagementsystem.Department;
 import com.example.employeemanagementsystem.dto.DepartmentRequest;
 import com.example.employeemanagementsystem.dto.DepartmentResponse;
 import com.example.employeemanagementsystem.repository.DepartmentRepository;
+import com.example.employeemanagementsystem.repository.EmployeeRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,9 +17,12 @@ import java.util.Optional;
 public class DepartmentService {
 
     private final DepartmentRepository departmentRepository;
+    private final EmployeeRepository employeeRepository;
 
-    public DepartmentService(DepartmentRepository departmentRepository) {
+    public DepartmentService(DepartmentRepository departmentRepository,
+                             EmployeeRepository employeeRepository) {
         this.departmentRepository = departmentRepository;
+        this.employeeRepository = employeeRepository;
     }
 
     @Transactional(readOnly = true)
@@ -67,6 +71,13 @@ public class DepartmentService {
         Department department = departmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Department not found: " + id));
+        long employeeCount = employeeRepository.countByDepartmentId(id);
+        if (employeeCount > 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Cannot delete department '" + department.getName() + "': "
+                            + employeeCount + " employee(s) are assigned to it.");
+        }
         departmentRepository.delete(department);
     }
 

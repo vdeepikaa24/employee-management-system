@@ -96,8 +96,9 @@
         <div class="modal-actions"><button class="button button-secondary cancel-modal" type="button">Cancel</button><button class="button button-primary" type="submit">Save employee</button></div>
       </form>
       <form id="departmentForm" class="hidden">
+        <input id="departmentId" type="hidden">
         <div class="field"><label for="departmentName">Department name</label><input id="departmentName" maxlength="100" required></div>
-        <div class="modal-actions"><button class="button button-secondary cancel-modal" type="button">Cancel</button><button class="button button-primary" type="submit">Create department</button></div>
+        <div class="modal-actions"><button class="button button-secondary cancel-modal" type="button">Cancel</button><button id="saveDepartmentButton" class="button button-primary" type="submit">Create department</button></div>
       </form>
     </section>
   </div>
