@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101827">
+  <title>PeopleDesk · Employee Management</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">P</div>
+        <div><div class="brand-name">PeopleDesk</div><div class="brand-caption">Employee management</div></div>
+      </div>
+      <div id="sessionBar" class="session hidden">
+        <span id="sessionEmail" class="session-email"></span>
+        <span id="sessionRole" class="role-pill"></span>
+        <button id="logoutButton" class="button button-secondary" type="button">Sign out</button>
+      </div>
+    </header>
+
+    <section id="loginView" class="login-wrap">
+      <form id="loginForm" class="card login-card">
+        <div class="eyebrow">Welcome back</div>
+        <h1>Sign in</h1>
+        <p>Sign in with your Employee Management System account to view your team directory.</p>
+        <div id="loginNotice" class="notice"></div>
+        <div class="field"><label for="emailInput">Email</label><input id="emailInput" type="email" autocomplete="username" placeholder="you@example.com" required></div>
+        <div class="field"><label for="passwordInput">Password</label><input id="passwordInput" type="password" autocomplete="current-password" required></div>
+        <button class="button button-primary" type="submit">Sign in to dashboard</button>
+        <p class="muted" style="font-size:11px;margin:15px 0 0">API: <span id="apiAddress"></span></p>
+      </form>
+    </section>
+
+    <section id="appView" class="hidden">
+      <div class="intro">
+        <div class="eyebrow">Team workspace</div>
+        <h1>Employee directory</h1>
+        <p>Browse your people, search by name, and keep employee details up to date.</p>
+      </div>
+      <div id="appNotice" class="notice"></div>
+      <div class="toolbar">
+        <label class="searchbox"><span>⌕</span><input id="searchInput" type="search" placeholder="Search employees by name" aria-label="Search employees by name"></label>
+        <select id="sortSelect" aria-label="Sort employees">
+          <option value="asc">Name: A to Z</option>
+          <option value="desc">Name: Z to A</option>
+        </select>
+        <select id="sizeSelect" aria-label="Employees per page">
+          <option value="10">10 per page</option>
+          <option value="25">25 per page</option>
+          <option value="50">50 per page</option>
+        </select>
+        <button id="addDepartmentButton" class="button button-secondary admin-only" type="button">＋ Department</button>
+        <button id="addEmployeeButton" class="button button-primary admin-only" type="button">＋ Add employee</button>
+      </div>
+      <div class="layout">
+        <section class="card">
+          <div class="card-header">
+            <div><div class="card-title">People</div><div id="resultSummary" class="card-subtitle">Loading directory…</div></div>
+            <button id="refreshButton" class="icon-button" type="button" aria-label="Refresh directory" title="Refresh">↻</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Employee</th><th>Department</th><th>Created by</th><th class="admin-only">Actions</th></tr></thead>
+              <tbody id="employeeRows"></tbody>
+            </table>
+            <div id="emptyState" class="empty hidden"><strong>No matching employees</strong>Try another search or add an employee.</div>
+          </div>
+          <div class="pagination">
+            <span id="pageSummary"></span>
+            <div class="page-actions"><button id="previousButton" class="button button-secondary" type="button">← Previous</button><button id="nextButton" class="button button-secondary" type="button">Next →</button></div>
+          </div>
+        </section>
+        <aside class="card side-card">
+          <div class="side-heading">Departments</div>
+          <p id="departmentSummary" class="side-copy">Loading departments…</p>
+          <ul id="departmentList" class="department-list"></ul>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop" role="presentation">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head"><div id="modalTitle" class="modal-title"></div><button id="closeModalButton" class="icon-button" type="button" aria-label="Close">×</button></div>
+      <form id="employeeForm" class="hidden">
+        <input id="employeeId" type="hidden">
+        <div class="field"><label for="employeeName">Full name</label><input id="employeeName" maxlength="100" required></div>
+        <div class="field"><label for="employeeEmail">Email</label><input id="employeeEmail" type="email" maxlength="255" required></div>
+        <div class="field"><label for="employeeDepartment">Department</label><select id="employeeDepartment" required></select></div>
+        <div class="modal-actions"><button class="button button-secondary cancel-modal" type="button">Cancel</button><button class="button button-primary" type="submit">Save employee</button></div>
+      </form>
+      <form id="departmentForm" class="hidden">
+        <div class="field"><label for="departmentName">Department name</label><input id="departmentName" maxlength="100" required></div>
+        <div class="modal-actions"><button class="button button-secondary cancel-modal" type="button">Cancel</button><button class="button button-primary" type="submit">Create department</button></div>
+      </form>
+    </section>
+  </div>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>

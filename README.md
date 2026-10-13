@@ -31,6 +31,7 @@ mvn spring-boot:run
 
 The API starts at `http://localhost:8080`. The H2 console is at `http://localhost:8080/h2-console` for local development. Keep the terminal open while using the API.
 
+
 The default H2 databases are in-memory, so their data is cleared when the application stops. The configured local JWT secret is also for development. Set a strong `AUTH_TOKEN_SECRET` from a secure environment variable in deployed environments.
 
 ## Authentication in Postman
@@ -87,3 +88,15 @@ Create an employee with an admin bearer token using:
 ```
 
 Create a department first if the database is empty. DTO validation errors return `400`, duplicate records return `409`, and missing records return `404`.
+
+## Run the separate frontend
+
+Start the Spring Boot API on port `8080`, then open a second terminal and run:
+
+```powershell
+cd E:\Deepikaa\Project\EmployeeManagementSystem\frontend
+npm install
+npm start
+```
+
+Open `http://localhost:5500` in your browser and sign in with an API account. The frontend is served by Node.js and Express and supports employee search, paging, sorting, and (for admins) creating, editing, and deleting employees and creating departments. The API allows browser requests from the local frontend addresses on port `5500`.

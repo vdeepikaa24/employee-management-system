@@ -132,6 +132,23 @@ class AuthenticationIntegrationTests {
     }
 
     @Test
+    void localFrontendOriginCanMakeCorsPreflightRequests() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(
+                        uri("/api/employees/search?page=0&size=10"))
+                .header("Origin", "http://localhost:5500")
+                .header("Access-Control-Request-Method", "GET")
+                .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        HttpResponse<String> response = HTTP_CLIENT.send(
+                request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode(), response.body());
+        assertEquals("http://localhost:5500",
+                response.headers().firstValue("Access-Control-Allow-Origin").orElse(""));
+    }
+
+    @Test
     void adminCanCreateDepartment() throws Exception {
         String adminToken = loginAndGetToken(
                 "admin-test@example.com", "TestAdminPassword123!");

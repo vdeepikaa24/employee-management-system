@@ -1,0 +1,12 @@
+{
+  "name": "employee-management-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone frontend for the Employee Management System API",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "5.3.0"
+  }
+}
