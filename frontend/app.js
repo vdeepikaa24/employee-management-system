@@ -1,6 +1,6 @@
 (() => {
       const API_BASE = 'http://localhost:8080';
-      const state = { token: '', role: '', email: '', page: 0, size: 10, sort: 'asc', name: '', departmentId: '', totalPages: 0, departments: [], searchTimer: null };
+      const state = { token: '', role: '', email: '', authMode: 'login', page: 0, size: 10, sort: 'asc', name: '', departmentId: '', totalPages: 0, departments: [], searchTimer: null };
       const byId = (id) => document.getElementById(id);
       const loginView = byId('loginView');
       const appView = byId('appView');
@@ -43,8 +43,7 @@
         return payload;
       }
 
-      async function login(email, password) {
-        const result = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+      function startSession(result, email) {
         state.token = result.accessToken;
         state.role = result.role;
         state.email = email;
@@ -55,10 +54,38 @@
         showDashboard();
       }
 
+      async function login(email, password) {
+        const result = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+        startSession(result, email);
+      }
+
+      async function register(email, password) {
+        const result = await api('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) });
+        startSession(result, email);
+      }
+
+      function setAuthMode(mode) {
+        state.authMode = mode;
+        const isRegistering = mode === 'register';
+        byId('authEyebrow').textContent = isRegistering ? 'Join your team' : 'Welcome back';
+        byId('authTitle').textContent = isRegistering ? 'Create account' : 'Sign in';
+        byId('authDescription').textContent = isRegistering
+          ? 'Create a read-only account to browse the employee directory. Passwords must be at least 12 characters.'
+          : 'Sign in with your Employee Management System account to view your team directory.';
+        byId('passwordInput').autocomplete = isRegistering ? 'new-password' : 'current-password';
+        byId('passwordInput').minLength = isRegistering ? 12 : 1;
+        byId('passwordInput').maxLength = isRegistering ? 72 : 256;
+        byId('authSubmitButton').textContent = isRegistering ? 'Create read-only account' : 'Sign in to dashboard';
+        byId('authSwitchPrompt').textContent = isRegistering ? 'Already registered?' : 'New here?';
+        byId('authSwitchButton').textContent = isRegistering ? 'Sign in' : 'Create an account';
+        clearNotice(byId('loginNotice'));
+      }
+
       function signOut() {
         state.token = '';
         state.role = '';
         state.email = '';
+        setAuthMode('login');
         sessionStorage.removeItem('peopleDeskToken');
         sessionStorage.removeItem('peopleDeskRole');
         sessionStorage.removeItem('peopleDeskEmail');
@@ -268,12 +295,24 @@
         clearNotice(byId('loginNotice'));
         const button = event.currentTarget.querySelector('button[type="submit"]');
         button.disabled = true;
-        button.textContent = 'Signing in…';
-        try { await login(byId('emailInput').value.trim(), byId('passwordInput').value); }
+        const isRegistering = state.authMode === 'register';
+        button.textContent = isRegistering ? 'Creating account…' : 'Signing in…';
+        try {
+          const email = byId('emailInput').value.trim();
+          const password = byId('passwordInput').value;
+          if (isRegistering) await register(email, password);
+          else await login(email, password);
+        }
         catch (error) { notice(byId('loginNotice'), error.message, 'error'); }
-        finally { button.disabled = false; button.textContent = 'Sign in to dashboard'; }
+        finally {
+          button.disabled = false;
+          button.textContent = state.authMode === 'register' ? 'Create read-only account' : 'Sign in to dashboard';
+        }
       });
 
+      byId('authSwitchButton').addEventListener('click', () => {
+        setAuthMode(state.authMode === 'login' ? 'register' : 'login');
+      });
       byId('logoutButton').addEventListener('click', signOut);
       byId('addEmployeeButton').addEventListener('click', () => openEmployeeModal());
       byId('addDepartmentButton').addEventListener('click', openDepartmentModal);
