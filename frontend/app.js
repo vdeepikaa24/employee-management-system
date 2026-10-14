@@ -122,7 +122,7 @@
           const rows = byId('employeeRows');
           rows.innerHTML = page.content.map((employee) => `
             <tr>
-              <td><div class="employee-name">${escapeHtml(employee.name)}</div><div class="employee-email">${escapeHtml(employee.email)}</div></td>
+              <td><button class="employee-name employee-profile-link" data-id="${employee.id}" type="button">${escapeHtml(employee.name)}</button><div class="employee-email">${escapeHtml(employee.email)}</div></td>
               <td><span class="dept-chip">${escapeHtml(employee.departmentName)}</span></td>
               <td class="muted">${escapeHtml(employee.createdBy || '—')}</td>
               ${state.role === 'ADMIN' ? `<td><div class="row-actions"><button class="icon-button edit-employee" data-id="${employee.id}" type="button" title="Edit" aria-label="Edit ${escapeHtml(employee.name)}">✎</button><button class="button button-secondary archive-employee" data-id="${employee.id}" type="button" title="Move this employee to the archive">Archive</button><button class="button button-danger delete-employee" data-id="${employee.id}" type="button">Delete</button></div></td>` : ''}
@@ -137,6 +137,9 @@
           rows.querySelectorAll('.archive-employee').forEach((button) => button.addEventListener('click', () => {
             const employee = page.content.find((item) => String(item.id) === button.dataset.id);
             if (employee) archiveEmployee(employee);
+          }));
+          rows.querySelectorAll('.employee-profile-link').forEach((button) => button.addEventListener('click', () => {
+            openEmployeeProfile(button.dataset.id);
           }));
         } catch (error) {
           notice(byId('appNotice'), error.message, 'error');
@@ -222,12 +225,45 @@
         }
       }
 
+      function formatDateTime(value) {
+        if (!value) return '—';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+      }
+
+      async function openEmployeeProfile(id) {
+        byId('employeeForm').classList.add('hidden');
+        byId('departmentForm').classList.add('hidden');
+        byId('employeeProfile').classList.remove('hidden');
+        byId('modalTitle').textContent = 'Employee profile';
+        clearNotice(byId('profileNotice'));
+        ['profileName', 'profileEmail', 'profileDepartment', 'profileCreatedBy',
+          'profileCreatedDate', 'profileModifiedBy', 'profileModifiedDate']
+          .forEach((fieldId) => { byId(fieldId).textContent = 'Loading…'; });
+        modalBackdrop.classList.add('open');
+        byId('closeModalButton').focus();
+
+        try {
+          const employee = await api(`/api/employees/${id}`);
+          byId('profileName').textContent = employee.name || '—';
+          byId('profileEmail').textContent = employee.email || '—';
+          byId('profileDepartment').textContent = employee.departmentName || '—';
+          byId('profileCreatedBy').textContent = employee.createdBy || '—';
+          byId('profileCreatedDate').textContent = formatDateTime(employee.createdDate);
+          byId('profileModifiedBy').textContent = employee.lastModifiedBy || '—';
+          byId('profileModifiedDate').textContent = formatDateTime(employee.lastModifiedDate);
+        } catch (error) {
+          notice(byId('profileNotice'), error.message, 'error');
+        }
+      }
+
       function openEmployeeModal(employee = null) {
         if (!state.departments.length) {
           notice(byId('appNotice'), 'Create a department before adding an employee.', 'info');
           return;
         }
         byId('departmentForm').classList.add('hidden');
+        byId('employeeProfile').classList.add('hidden');
         byId('employeeForm').classList.remove('hidden');
         byId('modalTitle').textContent = employee ? 'Edit employee' : 'Add employee';
         byId('employeeId').value = employee?.id || '';
@@ -241,6 +277,7 @@
 
       function openDepartmentModal(department = null) {
         byId('employeeForm').classList.add('hidden');
+        byId('employeeProfile').classList.add('hidden');
         byId('departmentForm').classList.remove('hidden');
         byId('modalTitle').textContent = department ? 'Rename department' : 'Add department';
         byId('departmentId').value = department?.id || '';

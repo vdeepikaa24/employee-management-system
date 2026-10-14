@@ -117,6 +117,19 @@
         <div class="field"><label for="departmentName">Department name</label><input id="departmentName" maxlength="100" required></div>
         <div class="modal-actions"><button class="button button-secondary cancel-modal" type="button">Cancel</button><button id="saveDepartmentButton" class="button button-primary" type="submit">Create department</button></div>
       </form>
+      <section id="employeeProfile" class="hidden" aria-live="polite">
+        <div id="profileNotice" class="notice"></div>
+        <dl class="profile-grid">
+          <div><dt>Name</dt><dd id="profileName">Loading…</dd></div>
+          <div><dt>Email</dt><dd id="profileEmail">Loading…</dd></div>
+          <div><dt>Department</dt><dd id="profileDepartment">Loading…</dd></div>
+          <div><dt>Created by</dt><dd id="profileCreatedBy">Loading…</dd></div>
+          <div><dt>Created</dt><dd id="profileCreatedDate">Loading…</dd></div>
+          <div><dt>Last updated by</dt><dd id="profileModifiedBy">Loading…</dd></div>
+          <div><dt>Last updated</dt><dd id="profileModifiedDate">Loading…</dd></div>
+        </dl>
+        <div class="modal-actions"><button class="button button-secondary cancel-modal" type="button">Close</button></div>
+      </section>
     </section>
   </div>
 
