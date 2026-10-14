@@ -72,7 +72,7 @@
           <option value="50">50 per page</option>
         </select>
         <button id="exportCsvButton" class="button button-secondary" type="button">↓ Export CSV</button>
-        <button id="importCsvButton" class="button button-secondary admin-only" type="button" title="CSV columns: Name, Email, Department">↑ Import CSV</button>
+        <button id="importCsvButton" class="button button-secondary admin-only" type="button" title="Required CSV columns: Name, Email, Department. Optional: Job Title, Phone Number, Hire Date.">↑ Import CSV</button>
         <input id="employeeCsvInput" class="hidden" type="file" accept=".csv,text/csv" aria-label="Choose employee CSV file">
         <button id="addDepartmentButton" class="button button-secondary admin-only" type="button">＋ Department</button>
         <button id="addEmployeeButton" class="button button-primary admin-only" type="button">＋ Add employee</button>
@@ -124,6 +124,9 @@
         <input id="employeeId" type="hidden">
         <div class="field"><label for="employeeName">Full name</label><input id="employeeName" maxlength="100" required></div>
         <div class="field"><label for="employeeEmail">Email</label><input id="employeeEmail" type="email" maxlength="255" required></div>
+        <div class="field"><label for="employeeJobTitle">Job title</label><input id="employeeJobTitle" maxlength="120" placeholder="e.g. Software Engineer"></div>
+        <div class="field"><label for="employeePhoneNumber">Phone number</label><input id="employeePhoneNumber" type="tel" maxlength="30" pattern="[+0-9().\s-]{7,30}" title="Use 7–30 digits, spaces, or common phone symbols" placeholder="e.g. +1 555 123 4567"></div>
+        <div class="field"><label for="employeeHireDate">Hire date</label><input id="employeeHireDate" type="date"></div>
         <div class="field"><label for="employeeDepartment">Department</label><select id="employeeDepartment" required></select></div>
         <div class="modal-actions"><button class="button button-secondary cancel-modal" type="button">Cancel</button><button class="button button-primary" type="submit">Save employee</button></div>
       </form>
@@ -137,6 +140,9 @@
         <dl class="profile-grid">
           <div><dt>Name</dt><dd id="profileName">Loading…</dd></div>
           <div><dt>Email</dt><dd id="profileEmail">Loading…</dd></div>
+          <div><dt>Job title</dt><dd id="profileJobTitle">Loading…</dd></div>
+          <div><dt>Phone number</dt><dd id="profilePhoneNumber">Loading…</dd></div>
+          <div><dt>Hire date</dt><dd id="profileHireDate">Loading…</dd></div>
           <div><dt>Department</dt><dd id="profileDepartment">Loading…</dd></div>
           <div><dt>Created by</dt><dd id="profileCreatedBy">Loading…</dd></div>
           <div><dt>Created</dt><dd id="profileCreatedDate">Loading…</dd></div>

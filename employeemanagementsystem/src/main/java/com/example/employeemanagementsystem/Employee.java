@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Entity
 @DynamicUpdate
 @BatchSize(size = 25)
@@ -30,6 +32,15 @@ public class Employee extends AuditableEntity {
 
     @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(name = "job_title", length = 120)
+    private String jobTitle;
+
+    @Column(name = "phone_number", length = 30)
+    private String phoneNumber;
+
+    @Column(name = "hire_date")
+    private LocalDate hireDate;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "department_id", nullable = false)

@@ -301,7 +301,7 @@
         byId('employeeProfile').classList.remove('hidden');
         byId('modalTitle').textContent = 'Employee profile';
         clearNotice(byId('profileNotice'));
-        ['profileName', 'profileEmail', 'profileDepartment', 'profileCreatedBy',
+        ['profileName', 'profileEmail', 'profileJobTitle', 'profilePhoneNumber', 'profileHireDate', 'profileDepartment', 'profileCreatedBy',
           'profileCreatedDate', 'profileModifiedBy', 'profileModifiedDate']
           .forEach((fieldId) => { byId(fieldId).textContent = 'Loading…'; });
         modalBackdrop.classList.add('open');
@@ -311,6 +311,11 @@
           const employee = await api(`/api/employees/${id}`);
           byId('profileName').textContent = employee.name || '—';
           byId('profileEmail').textContent = employee.email || '—';
+          byId('profileJobTitle').textContent = employee.jobTitle || '—';
+          byId('profilePhoneNumber').textContent = employee.phoneNumber || '—';
+          byId('profileHireDate').textContent = employee.hireDate
+            ? new Date(`${employee.hireDate}T00:00:00`).toLocaleDateString()
+            : '—';
           byId('profileDepartment').textContent = employee.departmentName || '—';
           byId('profileCreatedBy').textContent = employee.createdBy || '—';
           byId('profileCreatedDate').textContent = formatDateTime(employee.createdDate);
@@ -333,6 +338,9 @@
         byId('employeeId').value = employee?.id || '';
         byId('employeeName').value = employee?.name || '';
         byId('employeeEmail').value = employee?.email || '';
+        byId('employeeJobTitle').value = employee?.jobTitle || '';
+        byId('employeePhoneNumber').value = employee?.phoneNumber || '';
+        byId('employeeHireDate').value = employee?.hireDate || '';
         byId('employeeDepartment').innerHTML = state.departments.map((department) => `<option value="${department.id}">${escapeHtml(department.name)}</option>`).join('');
         if (employee) byId('employeeDepartment').value = employee.departmentId;
         modalBackdrop.classList.add('open');
@@ -418,6 +426,9 @@
           const columns = [
             ['Name', 'name'],
             ['Email', 'email'],
+            ['Job Title', 'jobTitle'],
+            ['Phone Number', 'phoneNumber'],
+            ['Hire Date', 'hireDate'],
             ['Department', 'departmentName'],
             ['Created by', 'createdBy'],
             ['Created date', 'createdDate'],
@@ -511,6 +522,9 @@
         const headers = rows[0].map((header) => header.trim().toLowerCase());
         const nameColumn = headers.indexOf('name');
         const emailColumn = headers.indexOf('email');
+        const jobTitleColumn = headers.indexOf('job title');
+        const phoneNumberColumn = headers.indexOf('phone number');
+        const hireDateColumn = headers.indexOf('hire date');
         const departmentColumn = headers.indexOf('department');
         const departmentIdColumn = headers.indexOf('departmentid');
         if (nameColumn < 0 || emailColumn < 0 || (departmentColumn < 0 && departmentIdColumn < 0)) {
@@ -532,6 +546,9 @@
           if (values.every((value) => !value.trim())) return;
           const name = (values[nameColumn] || '').trim();
           const email = (values[emailColumn] || '').trim();
+          const jobTitle = jobTitleColumn < 0 ? '' : (values[jobTitleColumn] || '').trim();
+          const phoneNumber = phoneNumberColumn < 0 ? '' : (values[phoneNumberColumn] || '').trim();
+          const hireDate = hireDateColumn < 0 ? '' : (values[hireDateColumn] || '').trim();
           const departmentValue = (values[departmentColumn >= 0 ? departmentColumn : departmentIdColumn] || '').trim();
           const problems = [];
 
@@ -539,6 +556,13 @@
           else if (name.length > 100) problems.push('name must be at most 100 characters');
           if (!email) problems.push('email is required');
           else if (email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) problems.push('email is invalid');
+          if (jobTitle.length > 120) problems.push('job title must be at most 120 characters');
+          if (phoneNumber && (phoneNumber.length > 30 || !/^[+0-9().\-\s]{7,30}$/.test(phoneNumber))) problems.push('phone number is invalid');
+          if (hireDate && (!/^\d{4}-\d{2}-\d{2}$/.test(hireDate)
+              || Number.isNaN(new Date(`${hireDate}T00:00:00`).getTime())
+              || new Date(`${hireDate}T00:00:00`).toISOString().slice(0, 10) !== hireDate)) {
+            problems.push('hire date must use YYYY-MM-DD');
+          }
 
           let departmentId;
           if (!departmentValue) {
@@ -556,7 +580,7 @@
           seenEmails.add(normalizedEmail);
 
           if (problems.length) errors.push(`Line ${lineNumber}: ${problems.join(', ')}`);
-          else imported.push({ name, email, departmentId });
+          else imported.push({ name, email, departmentId, jobTitle: jobTitle || null, phoneNumber: phoneNumber || null, hireDate: hireDate || null });
         });
 
         if (!imported.length && !errors.length) throw new Error('The CSV has a header but no employee rows.');
@@ -660,7 +684,10 @@
         const body = {
           name: byId('employeeName').value.trim(),
           email: byId('employeeEmail').value.trim(),
-          departmentId: Number(byId('employeeDepartment').value)
+          departmentId: Number(byId('employeeDepartment').value),
+          jobTitle: byId('employeeJobTitle').value.trim() || null,
+          phoneNumber: byId('employeePhoneNumber').value.trim() || null,
+          hireDate: byId('employeeHireDate').value || null
         };
         try {
           await api(id ? `/api/employees/${id}` : '/api/employees', {

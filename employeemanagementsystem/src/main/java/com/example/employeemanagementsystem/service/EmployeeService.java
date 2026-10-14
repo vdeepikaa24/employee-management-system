@@ -92,6 +92,7 @@ public class EmployeeService {
         Employee employee = new Employee();
         employee.setName(request.name());
         employee.setEmail(request.email());
+        setJobDetails(employee, request);
         employee.setDepartment(getDepartment(request.departmentId()));
         return toResponse(employeeRepository.save(employee));
     }
@@ -101,6 +102,7 @@ public class EmployeeService {
         Employee employee = getEmployee(id);
         employee.setName(request.name());
         employee.setEmail(request.email());
+        setJobDetails(employee, request);
         employee.setDepartment(getDepartment(request.departmentId()));
         return toResponse(employeeRepository.save(employee));
     }
@@ -112,6 +114,7 @@ public class EmployeeService {
             Employee employee = new Employee();
             employee.setName(request.name());
             employee.setEmail(request.email());
+            setJobDetails(employee, request);
             employee.setDepartment(departmentRepository.getReferenceById(
                     request.departmentId()));
             entityManager.persist(employee);
@@ -143,11 +146,25 @@ public class EmployeeService {
                         HttpStatus.NOT_FOUND, "Department not found: " + id));
     }
 
+    private void setJobDetails(Employee employee, EmployeeRequest request) {
+        employee.setJobTitle(normalizeOptionalText(request.jobTitle()));
+        employee.setPhoneNumber(normalizeOptionalText(request.phoneNumber()));
+        employee.setHireDate(request.hireDate());
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null || value.isBlank()) return null;
+        return value.trim();
+    }
+
     private EmployeeResponse toResponse(Employee employee) {
         return new EmployeeResponse(
                 employee.getId(),
                 employee.getName(),
                 employee.getEmail(),
+                employee.getJobTitle(),
+                employee.getPhoneNumber(),
+                employee.getHireDate(),
                 employee.getDepartment().getId(),
                 employee.getDepartment().getName(),
                 employee.getCreatedBy(),

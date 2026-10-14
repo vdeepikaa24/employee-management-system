@@ -39,6 +39,9 @@ public class ArchiveService {
                     id BIGINT PRIMARY KEY,
                     name VARCHAR(255) NOT NULL,
                     email VARCHAR(255) NOT NULL,
+                    job_title VARCHAR(120),
+                    phone_number VARCHAR(30),
+                    hire_date DATE,
                     department_id BIGINT,
                     department_name VARCHAR(255) NOT NULL,
                     archived_at TIMESTAMP WITH TIME ZONE NOT NULL
@@ -47,6 +50,12 @@ public class ArchiveService {
         // Adds the department id when opening an archive database created by an older version.
         archiveJdbcTemplate.execute(
                 "ALTER TABLE archived_employees ADD COLUMN IF NOT EXISTS department_id BIGINT");
+        archiveJdbcTemplate.execute(
+                "ALTER TABLE archived_employees ADD COLUMN IF NOT EXISTS job_title VARCHAR(120)");
+        archiveJdbcTemplate.execute(
+                "ALTER TABLE archived_employees ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30)");
+        archiveJdbcTemplate.execute(
+                "ALTER TABLE archived_employees ADD COLUMN IF NOT EXISTS hire_date DATE");
     }
 
     @Transactional
@@ -62,12 +71,16 @@ public class ArchiveService {
             employeeRepository.flush();
             archiveJdbcTemplate.update("""
                             INSERT INTO archived_employees
-                                (id, name, email, department_id, department_name, archived_at)
-                            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                                (id, name, email, job_title, phone_number, hire_date,
+                                 department_id, department_name, archived_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                             """,
                     employee.getId(),
                     employee.getName(),
                     employee.getEmail(),
+                    employee.getJobTitle(),
+                    employee.getPhoneNumber(),
+                    employee.getHireDate(),
                     employee.getDepartment().getId(),
                     employee.getDepartment().getName());
         } catch (DuplicateKeyException exception) {
@@ -82,7 +95,8 @@ public class ArchiveService {
     @Transactional
     public Map<String, Object> restoreEmployee(Long id) {
         ArchiveSnapshot snapshot = archiveJdbcTemplate.query("""
-                        SELECT id, name, email, department_id, department_name
+                        SELECT id, name, email, job_title, phone_number, hire_date,
+                               department_id, department_name
                         FROM archived_employees
                         WHERE id = ?
                         """,
@@ -90,6 +104,10 @@ public class ArchiveService {
                         resultSet.getLong("id"),
                         resultSet.getString("name"),
                         resultSet.getString("email"),
+                        resultSet.getString("job_title"),
+                        resultSet.getString("phone_number"),
+                        resultSet.getDate("hire_date") == null ? null
+                                : resultSet.getDate("hire_date").toLocalDate(),
                         resultSet.getObject("department_id", Long.class),
                         resultSet.getString("department_name")),
                 id).stream().findFirst().orElseThrow(() -> new ResponseStatusException(
@@ -105,6 +123,9 @@ public class ArchiveService {
         Employee employee = new Employee();
         employee.setName(snapshot.name());
         employee.setEmail(snapshot.email());
+        employee.setJobTitle(snapshot.jobTitle());
+        employee.setPhoneNumber(snapshot.phoneNumber());
+        employee.setHireDate(snapshot.hireDate());
         employee.setDepartment(department);
         Employee restored = employeeRepository.saveAndFlush(employee);
 
@@ -118,6 +139,9 @@ public class ArchiveService {
                 SELECT id AS "id",
                        name AS "name",
                        email AS "email",
+                       job_title AS "jobTitle",
+                       phone_number AS "phoneNumber",
+                       hire_date AS "hireDate",
                        department_name AS "departmentName",
                        archived_at AS "archivedAt"
                 FROM archived_employees
@@ -141,6 +165,9 @@ public class ArchiveService {
             Long id,
             String name,
             String email,
+            String jobTitle,
+            String phoneNumber,
+            java.time.LocalDate hireDate,
             Long departmentId,
             String departmentName) {
     }
