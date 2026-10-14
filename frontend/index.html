@@ -124,7 +124,7 @@
         <input id="employeeId" type="hidden">
         <div class="field"><label for="employeeName">Full name</label><input id="employeeName" maxlength="100" required></div>
         <div class="field"><label for="employeeEmail">Email</label><input id="employeeEmail" type="email" maxlength="255" required></div>
-        <div class="field"><label for="employeeJobTitle">Job title</label><input id="employeeJobTitle" maxlength="120" placeholder="e.g. Software Engineer"></div>
+        <div class="field"><label for="employeeJobTitle">Job title</label><input id="employeeJobTitle" list="jobTitleSuggestions" maxlength="120" placeholder="Choose or enter a job title"><datalist id="jobTitleSuggestions"></datalist><small class="muted">Suggestions change with the selected department; custom titles are welcome.</small></div>
         <div class="field"><label for="employeePhoneNumber">Phone number</label><input id="employeePhoneNumber" type="tel" maxlength="30" pattern="[+0-9().\s-]{7,30}" title="Use 7–30 digits, spaces, or common phone symbols" placeholder="e.g. +1 555 123 4567"></div>
         <div class="field"><label for="employeeHireDate">Hire date</label><input id="employeeHireDate" type="date"></div>
         <div class="field"><label for="employeeDepartment">Department</label><select id="employeeDepartment" required></select></div>

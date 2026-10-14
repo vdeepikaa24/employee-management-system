@@ -343,8 +343,32 @@
         byId('employeeHireDate').value = employee?.hireDate || '';
         byId('employeeDepartment').innerHTML = state.departments.map((department) => `<option value="${department.id}">${escapeHtml(department.name)}</option>`).join('');
         if (employee) byId('employeeDepartment').value = employee.departmentId;
+        updateJobTitleSuggestions();
         modalBackdrop.classList.add('open');
         byId('employeeName').focus();
+      }
+
+      function updateJobTitleSuggestions() {
+        const department = state.departments.find((item) => String(item.id) === byId('employeeDepartment').value);
+        if (!department) {
+          byId('jobTitleSuggestions').replaceChildren();
+          return;
+        }
+        const name = department.name.trim();
+        const normalizedName = name.toLowerCase();
+        let suggestions;
+        if (/quality assurance|\bqa\b/.test(normalizedName)) {
+          suggestions = ['QA Engineer', 'QA Analyst', 'Test Engineer', 'QA Lead', 'QA Manager'];
+        } else if (/engineering|\bece\b/.test(normalizedName)) {
+          suggestions = ['Software Engineer', 'Electrical Engineer', 'Systems Engineer', 'Engineering Lead', 'Engineering Manager'];
+        } else {
+          suggestions = [`${name} Specialist`, `${name} Analyst`, `${name} Lead`, `${name} Manager`];
+        }
+        byId('jobTitleSuggestions').replaceChildren(...suggestions.map((title) => {
+          const option = document.createElement('option');
+          option.value = title;
+          return option;
+        }));
       }
 
       function openDepartmentModal(department = null) {
@@ -673,6 +697,7 @@
         state.page = 0;
         loadEmployees();
       });
+      byId('employeeDepartment').addEventListener('change', updateJobTitleSuggestions);
       byId('closeModalButton').addEventListener('click', closeModal);
       document.querySelectorAll('.cancel-modal').forEach((button) => button.addEventListener('click', closeModal));
       modalBackdrop.addEventListener('click', (event) => { if (event.target === modalBackdrop) closeModal(); });
