@@ -72,13 +72,26 @@ class AuthenticationIntegrationTests {
     }
 
     @Test
-    void userCannotCreateDepartment() throws Exception {
+    void userCannotCreateUpdateOrDeleteEmployeesAndDepartments() throws Exception {
         String token = registerAndGetToken(uniqueEmail());
+        String employeeJson = "{\"name\":\"Unauthorized Change\","
+                + "\"email\":\"blocked-" + UUID.randomUUID()
+                + "@example.com\",\"departmentId\":1}";
+        String departmentJson = "{\"name\":\"Unauthorized Department "
+                + UUID.randomUUID() + "\"}";
 
-        HttpResponse<String> response = post("/api/departments",
-                "{\"name\":\"Test Department " + UUID.randomUUID() + "\"}", token);
-
-        assertEquals(403, response.statusCode());
+        assertEquals(403, post("/api/employees", employeeJson, token).statusCode(),
+                "USER should not create employees");
+        assertEquals(403, put("/api/employees/1", employeeJson, token).statusCode(),
+                "USER should not update employees");
+        assertEquals(403, delete("/api/employees/1", token).statusCode(),
+                "USER should not delete employees");
+        assertEquals(403, post("/api/departments", departmentJson, token).statusCode(),
+                "USER should not create departments");
+        assertEquals(403, put("/api/departments/1", departmentJson, token).statusCode(),
+                "USER should not update departments");
+        assertEquals(403, delete("/api/departments/1", token).statusCode(),
+                "USER should not delete departments");
     }
 
     @Test
@@ -177,9 +190,29 @@ class AuthenticationIntegrationTests {
 
     private HttpResponse<String> post(String path, String jsonBody, String token)
             throws Exception {
-        HttpRequest.Builder request = HttpRequest.newBuilder(uri(path))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody));
+        return send(path, "POST", jsonBody, token);
+    }
+
+    private HttpResponse<String> put(String path, String jsonBody, String token)
+            throws Exception {
+        return send(path, "PUT", jsonBody, token);
+    }
+
+    private HttpResponse<String> delete(String path, String token)
+            throws Exception {
+        return send(path, "DELETE", null, token);
+    }
+
+    private HttpResponse<String> send(String path, String method, String jsonBody,
+            String token) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder(uri(path));
+        if (jsonBody != null) {
+            request.header("Content-Type", "application/json");
+        }
+        HttpRequest.BodyPublisher body = jsonBody == null
+                ? HttpRequest.BodyPublishers.noBody()
+                : HttpRequest.BodyPublishers.ofString(jsonBody);
+        request.method(method, body);
         if (token != null) {
             request.header("Authorization", "Bearer " + token);
         }
