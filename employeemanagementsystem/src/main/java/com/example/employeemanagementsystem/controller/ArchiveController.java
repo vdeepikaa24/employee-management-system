@@ -28,6 +28,11 @@ public class ArchiveController {
         return archiveService.archiveEmployee(id);
     }
 
+    @PostMapping("/{id}/restore")
+    public Map<String, Object> restoreEmployee(@PathVariable Long id) {
+        return archiveService.restoreEmployee(id);
+    }
+
     @GetMapping
     public List<Map<String, Object>> getArchivedEmployees() {
         return archiveService.findArchivedEmployees();

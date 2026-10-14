@@ -57,6 +57,8 @@
           <option value="50">50 per page</option>
         </select>
         <button id="exportCsvButton" class="button button-secondary" type="button">↓ Export CSV</button>
+        <button id="importCsvButton" class="button button-secondary admin-only" type="button" title="CSV columns: Name, Email, Department">↑ Import CSV</button>
+        <input id="employeeCsvInput" class="hidden" type="file" accept=".csv,text/csv" aria-label="Choose employee CSV file">
         <button id="addDepartmentButton" class="button button-secondary admin-only" type="button">＋ Department</button>
         <button id="addEmployeeButton" class="button button-primary admin-only" type="button">＋ Add employee</button>
       </div>
@@ -84,6 +86,19 @@
           <ul id="departmentList" class="department-list"></ul>
         </aside>
       </div>
+      <section id="archiveCard" class="card archive-card admin-only">
+        <div class="card-header">
+          <div><div class="card-title">Archived employees</div><div id="archiveSummary" class="card-subtitle">Employees removed from the active directory</div></div>
+          <button id="refreshArchiveButton" class="button button-secondary" type="button">Refresh archive</button>
+        </div>
+        <div class="table-wrap">
+          <table class="archive-table">
+            <thead><tr><th>Employee</th><th>Department</th><th>Archived at</th><th>Actions</th></tr></thead>
+            <tbody id="archiveRows"></tbody>
+          </table>
+          <div id="archiveEmptyState" class="empty hidden">No employees have been archived yet.</div>
+        </div>
+      </section>
     </section>
   </main>
 

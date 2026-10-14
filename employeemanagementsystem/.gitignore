@@ -1,5 +1,6 @@
 HELP.md
 target/
+archive-db*
 .env
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

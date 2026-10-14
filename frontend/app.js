@@ -104,7 +104,8 @@
         document.querySelectorAll('.admin-only').forEach((element) => {
           element.classList.toggle('hidden', state.role !== 'ADMIN');
         });
-        await Promise.all([loadEmployees(), loadDepartments()]);
+        await Promise.all([loadDepartments(), loadArchive()]);
+        await loadEmployees();
       }
 
       async function loadEmployees() {
@@ -124,7 +125,7 @@
               <td><div class="employee-name">${escapeHtml(employee.name)}</div><div class="employee-email">${escapeHtml(employee.email)}</div></td>
               <td><span class="dept-chip">${escapeHtml(employee.departmentName)}</span></td>
               <td class="muted">${escapeHtml(employee.createdBy || '—')}</td>
-              ${state.role === 'ADMIN' ? `<td><div class="row-actions"><button class="icon-button edit-employee" data-id="${employee.id}" type="button" title="Edit" aria-label="Edit ${escapeHtml(employee.name)}">✎</button><button class="button button-danger delete-employee" data-id="${employee.id}" type="button">Delete</button></div></td>` : ''}
+              ${state.role === 'ADMIN' ? `<td><div class="row-actions"><button class="icon-button edit-employee" data-id="${employee.id}" type="button" title="Edit" aria-label="Edit ${escapeHtml(employee.name)}">✎</button><button class="button button-secondary archive-employee" data-id="${employee.id}" type="button" title="Move this employee to the archive">Archive</button><button class="button button-danger delete-employee" data-id="${employee.id}" type="button">Delete</button></div></td>` : ''}
             </tr>`).join('');
           byId('emptyState').classList.toggle('hidden', page.content.length > 0);
           rows.classList.toggle('hidden', page.content.length === 0);
@@ -133,6 +134,60 @@
             if (employee) openEmployeeModal(employee);
           }));
           rows.querySelectorAll('.delete-employee').forEach((button) => button.addEventListener('click', () => deleteEmployee(button.dataset.id)));
+          rows.querySelectorAll('.archive-employee').forEach((button) => button.addEventListener('click', () => {
+            const employee = page.content.find((item) => String(item.id) === button.dataset.id);
+            if (employee) archiveEmployee(employee);
+          }));
+        } catch (error) {
+          notice(byId('appNotice'), error.message, 'error');
+        }
+      }
+
+      async function loadArchive() {
+        if (state.role !== 'ADMIN') return;
+        try {
+          const archivedEmployees = await api('/api/archive/employees');
+          const normalizedEmployees = archivedEmployees.map((employee) => Object.fromEntries(
+            Object.entries(employee).map(([key, value]) => [key.toLowerCase(), value])
+          ));
+          byId('archiveSummary').textContent = `${archivedEmployees.length} employee${archivedEmployees.length === 1 ? '' : 's'} archived`;
+          byId('archiveRows').innerHTML = normalizedEmployees.map((employee) => {
+            const archivedAt = employee.archivedat || employee.archived_at;
+            const formattedDate = archivedAt ? new Date(archivedAt).toLocaleString() : '—';
+            return `<tr><td><div class="employee-name">${escapeHtml(employee.name)}</div><div class="employee-email">${escapeHtml(employee.email)}</div></td><td>${escapeHtml(employee.departmentname || employee.department_name)}</td><td class="muted">${escapeHtml(formattedDate)}</td><td><button class="button button-secondary restore-employee" data-id="${employee.id}" type="button">Restore</button></td></tr>`;
+          }).join('');
+          byId('archiveRows').querySelectorAll('.restore-employee').forEach((button) => button.addEventListener('click', () => {
+            const employee = normalizedEmployees.find((item) => String(item.id) === button.dataset.id);
+            if (employee) restoreEmployee(employee);
+          }));
+          byId('archiveEmptyState').classList.toggle('hidden', archivedEmployees.length > 0);
+          byId('archiveRows').classList.toggle('hidden', archivedEmployees.length === 0);
+        } catch (error) {
+          byId('archiveSummary').textContent = error.message;
+        }
+      }
+
+      async function archiveEmployee(employee) {
+        if (!window.confirm(`Move ${employee.name} to the archive? They will leave the active directory and can be restored later.`)) return;
+        try {
+          await api(`/api/archive/employees/${employee.id}`, { method: 'POST' });
+          if (byId('employeeRows').children.length === 1 && state.page > 0) state.page -= 1;
+          await loadArchive();
+          await loadEmployees();
+          notice(byId('appNotice'), `${employee.name} moved to the archive.`, 'success');
+        } catch (error) {
+          notice(byId('appNotice'), error.message, 'error');
+        }
+      }
+
+      async function restoreEmployee(employee) {
+        if (!window.confirm(`Restore ${employee.name} to the active employee directory?`)) return;
+        try {
+          await api(`/api/archive/employees/${employee.id}/restore`, { method: 'POST' });
+          state.page = 0;
+          await loadArchive();
+          await loadEmployees();
+          notice(byId('appNotice'), `${employee.name} restored to the active directory.`, 'success');
         } catch (error) {
           notice(byId('appNotice'), error.message, 'error');
         }
@@ -290,6 +345,157 @@
         }
       }
 
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let field = '';
+        let inQuotes = false;
+        let afterQuote = false;
+        const source = text.replace(/^\uFEFF/, '');
+
+        for (let index = 0; index < source.length; index += 1) {
+          const char = source[index];
+          if (inQuotes) {
+            if (char === '"') {
+              if (source[index + 1] === '"') {
+                field += '"';
+                index += 1;
+              } else {
+                inQuotes = false;
+                afterQuote = true;
+              }
+            } else {
+              field += char;
+            }
+            continue;
+          }
+
+          if (afterQuote && char !== ',' && char !== '\r' && char !== '\n' && char !== ' ') {
+            throw new Error('The CSV has unexpected text after a quoted field.');
+          }
+          if (char === '"' && field.length === 0 && !afterQuote) {
+            inQuotes = true;
+          } else if (char === ',') {
+            row.push(field);
+            field = '';
+            afterQuote = false;
+          } else if (char === '\r' || char === '\n') {
+            row.push(field);
+            rows.push(row);
+            row = [];
+            field = '';
+            afterQuote = false;
+            if (char === '\r' && source[index + 1] === '\n') index += 1;
+          } else if (afterQuote && char === ' ') {
+            // Ignore spaces between a closing quote and its delimiter.
+          } else {
+            field += char;
+            afterQuote = false;
+          }
+        }
+
+        if (inQuotes) throw new Error('The CSV contains an unclosed quoted field.');
+        if (field.length || row.length || afterQuote) {
+          row.push(field);
+          rows.push(row);
+        }
+        return rows;
+      }
+
+      function parseEmployeeCsv(text) {
+        const rows = parseCsv(text);
+        if (!rows.length) throw new Error('The CSV file is empty.');
+        const headers = rows[0].map((header) => header.trim().toLowerCase());
+        const nameColumn = headers.indexOf('name');
+        const emailColumn = headers.indexOf('email');
+        const departmentColumn = headers.indexOf('department');
+        const departmentIdColumn = headers.indexOf('departmentid');
+        if (nameColumn < 0 || emailColumn < 0 || (departmentColumn < 0 && departmentIdColumn < 0)) {
+          throw new Error('CSV needs Name, Email, and Department columns (or DepartmentId).');
+        }
+
+        const departmentsByName = new Map(state.departments.map((department) => [
+          department.name.trim().toLowerCase(), department.id
+        ]));
+        const departmentsById = new Map(state.departments.map((department) => [
+          String(department.id), department.id
+        ]));
+        const imported = [];
+        const errors = [];
+        const seenEmails = new Set();
+
+        rows.slice(1).forEach((values, index) => {
+          const lineNumber = index + 2;
+          if (values.every((value) => !value.trim())) return;
+          const name = (values[nameColumn] || '').trim();
+          const email = (values[emailColumn] || '').trim();
+          const departmentValue = (values[departmentColumn >= 0 ? departmentColumn : departmentIdColumn] || '').trim();
+          const problems = [];
+
+          if (!name) problems.push('name is required');
+          else if (name.length > 100) problems.push('name must be at most 100 characters');
+          if (!email) problems.push('email is required');
+          else if (email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) problems.push('email is invalid');
+
+          let departmentId;
+          if (!departmentValue) {
+            problems.push('department is required');
+          } else if (departmentColumn >= 0) {
+            departmentId = departmentsByName.get(departmentValue.toLowerCase());
+            if (!departmentId) problems.push(`department "${departmentValue}" was not found`);
+          } else {
+            departmentId = departmentsById.get(departmentValue);
+            if (!departmentId) problems.push(`department id "${departmentValue}" was not found`);
+          }
+
+          const normalizedEmail = email.toLowerCase();
+          if (email && seenEmails.has(normalizedEmail)) problems.push('email appears more than once in the file');
+          seenEmails.add(normalizedEmail);
+
+          if (problems.length) errors.push(`Line ${lineNumber}: ${problems.join(', ')}`);
+          else imported.push({ name, email, departmentId });
+        });
+
+        if (!imported.length && !errors.length) throw new Error('The CSV has a header but no employee rows.');
+        if (errors.length) {
+          const displayedErrors = errors.slice(0, 8).join('\n');
+          const remaining = errors.length > 8 ? `\nAnd ${errors.length - 8} more error(s).` : '';
+          throw new Error(`${errors.length} row(s) need correction:\n${displayedErrors}${remaining}`);
+        }
+        if (imported.length > 1000) throw new Error('Import is limited to 1,000 employees per file.');
+        return imported;
+      }
+
+      async function importEmployeesCsv(file) {
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+          notice(byId('appNotice'), 'CSV file must be 5 MB or smaller.', 'error');
+          return;
+        }
+
+        try {
+          const employees = parseEmployeeCsv(await file.text());
+          const departmentNames = new Map(state.departments.map((department) => [
+            department.id, department.name
+          ]));
+          const preview = employees.slice(0, 5)
+            .map((employee) => `• ${employee.name} — ${departmentNames.get(employee.departmentId)}`)
+            .join('\n');
+          const more = employees.length > 5 ? `\n…and ${employees.length - 5} more` : '';
+          if (!window.confirm(`Import ${employees.length} employee(s)?\n\n${preview}${more}`)) return;
+
+          const result = await api('/api/employees/batch', {
+            method: 'POST',
+            body: JSON.stringify(employees)
+          });
+          state.page = 0;
+          await loadEmployees();
+          notice(byId('appNotice'), `Imported ${result.inserted} employee${result.inserted === 1 ? '' : 's'}.`, 'success');
+        } catch (error) {
+          notice(byId('appNotice'), error.message, 'error');
+        }
+      }
+
       byId('loginForm').addEventListener('submit', async (event) => {
         event.preventDefault();
         clearNotice(byId('loginNotice'));
@@ -317,7 +523,13 @@
       byId('addEmployeeButton').addEventListener('click', () => openEmployeeModal());
       byId('addDepartmentButton').addEventListener('click', openDepartmentModal);
       byId('exportCsvButton').addEventListener('click', exportEmployeesCsv);
+      byId('importCsvButton').addEventListener('click', () => byId('employeeCsvInput').click());
+      byId('employeeCsvInput').addEventListener('change', async (event) => {
+        try { await importEmployeesCsv(event.target.files[0]); }
+        finally { event.target.value = ''; }
+      });
       byId('refreshButton').addEventListener('click', () => { loadEmployees(); loadDepartments(); });
+      byId('refreshArchiveButton').addEventListener('click', loadArchive);
       byId('previousButton').addEventListener('click', () => { if (state.page > 0) { state.page -= 1; loadEmployees(); } });
       byId('nextButton').addEventListener('click', () => { if (state.page + 1 < state.totalPages) { state.page += 1; loadEmployees(); } });
       byId('searchInput').addEventListener('input', (event) => {

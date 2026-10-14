@@ -76,6 +76,7 @@ Registration returns a USER token. Users can read protected API data but cannot 
 | POST/PUT/DELETE | `/api/departments/**` | ADMIN |
 | GET | `/api/archive/employees` | ADMIN |
 | POST | `/api/archive/employees/{id}` | ADMIN |
+| POST | `/api/archive/employees/{id}/restore` | ADMIN |
 
 Create an employee with an admin bearer token using:
 
@@ -99,4 +100,4 @@ npm install
 npm start
 ```
 
-Open `http://localhost:5500` in your browser and sign in with an API account, or create a read-only USER account from the sign-in page. The frontend is served by Node.js and Express and supports employee search, department filtering, paging, sorting, and CSV export of the matching employee list. Admins can create, edit, and delete employees and manage departments. The API allows browser requests from the local frontend addresses on port `5500`.
+Open `http://localhost:5500` in your browser and sign in with an API account, or create a read-only USER account from the sign-in page. The frontend is served by Node.js and Express and supports employee search, department filtering, paging, sorting, and CSV export of the matching employee list. Admins can import employees from a CSV with `Name`, `Email`, and `Department` columns; department values must match existing department names. Admins can also create, edit, delete, and archive employees, manage departments, and restore archived employees. Archiving moves an employee out of the active directory and saves the record in a separate file-based H2 archive database. Restoring returns the employee to the active directory; the department must still exist. The API allows browser requests from the local frontend addresses on port `5500`.
