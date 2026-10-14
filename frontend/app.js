@@ -149,10 +149,21 @@
       async function loadOverview() {
         byId('overviewDepartmentCount').textContent = String(state.departments.length);
         try {
-          const params = new URLSearchParams({ page: '0', size: '5', sort: 'createdDate,desc' });
-          const page = await api(`/api/employees/search?${params}`);
-          byId('overviewEmployeeCount').textContent = String(page.totalElements);
-          const recentEmployees = page.content;
+          const recentParams = new URLSearchParams({ page: '0', size: '5', sort: 'createdDate,desc' });
+          const allParams = new URLSearchParams({ page: '0', size: '100', sort: 'name,asc' });
+          const [recentPage, firstEmployeePage] = await Promise.all([
+            api(`/api/employees/search?${recentParams}`),
+            api(`/api/employees/search?${allParams}`)
+          ]);
+          const employees = [...firstEmployeePage.content];
+          for (let pageNumber = 1; pageNumber < firstEmployeePage.totalPages; pageNumber += 1) {
+            allParams.set('page', String(pageNumber));
+            const page = await api(`/api/employees/search?${allParams}`);
+            employees.push(...page.content);
+          }
+          byId('overviewEmployeeCount').textContent = String(firstEmployeePage.totalElements);
+          renderDepartmentBreakdown(employees);
+          const recentEmployees = recentPage.content;
           byId('recentEmployeesList').innerHTML = recentEmployees.length
             ? recentEmployees.map((employee) => `<li><button class="recent-employee-link" data-id="${employee.id}" type="button">${escapeHtml(employee.name)}</button><span class="recent-employee-meta">${escapeHtml(employee.departmentName)} · ${escapeHtml(formatDateTime(employee.createdDate))}</span></li>`).join('')
             : '<li class="muted">No employees have been added yet.</li>';
@@ -161,8 +172,40 @@
           }));
         } catch (error) {
           byId('overviewEmployeeCount').textContent = '—';
+          byId('departmentBreakdownList').innerHTML = `<li class="muted">${escapeHtml(error.message)}</li>`;
           byId('recentEmployeesList').innerHTML = `<li class="muted">${escapeHtml(error.message)}</li>`;
         }
+      }
+
+      function renderDepartmentBreakdown(employees) {
+        const counts = new Map(state.departments.map((department) => [String(department.id), {
+          id: department.id, name: department.name, count: 0
+        }]));
+        employees.forEach((employee) => {
+          const department = counts.get(String(employee.departmentId));
+          if (department) department.count += 1;
+        });
+        const departments = [...counts.values()].sort((left, right) =>
+          right.count - left.count || left.name.localeCompare(right.name));
+        const maxCount = Math.max(1, ...departments.map((department) => department.count));
+        byId('departmentBreakdownList').innerHTML = departments.length
+          ? departments.map((department) => `
+              <li>
+                <button class="department-breakdown-button" data-id="${department.id}" type="button" aria-label="Show ${escapeHtml(department.count)} employees in ${escapeHtml(department.name)}">
+                  <span class="department-breakdown-heading"><span>${escapeHtml(department.name)}</span><strong>${department.count}</strong></span>
+                  <span class="department-bar-track" aria-hidden="true"><span class="department-bar" style="width:${department.count / maxCount * 100}%"></span></span>
+                </button>
+              </li>`).join('')
+          : '<li class="muted">No departments yet.</li>';
+        byId('departmentBreakdownList').querySelectorAll('.department-breakdown-button').forEach((button) => {
+          button.addEventListener('click', () => {
+            state.departmentId = button.dataset.id;
+            state.page = 0;
+            byId('departmentFilter').value = state.departmentId;
+            loadEmployees();
+            byId('employeeRows').closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        });
       }
 
       async function loadArchive() {
