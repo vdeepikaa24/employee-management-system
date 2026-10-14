@@ -105,7 +105,7 @@
           element.classList.toggle('hidden', state.role !== 'ADMIN');
         });
         await Promise.all([loadDepartments(), loadArchive()]);
-        await loadEmployees();
+        await Promise.all([loadEmployees(), loadOverview()]);
       }
 
       async function loadEmployees() {
@@ -146,6 +146,25 @@
         }
       }
 
+      async function loadOverview() {
+        byId('overviewDepartmentCount').textContent = String(state.departments.length);
+        try {
+          const params = new URLSearchParams({ page: '0', size: '5', sort: 'createdDate,desc' });
+          const page = await api(`/api/employees/search?${params}`);
+          byId('overviewEmployeeCount').textContent = String(page.totalElements);
+          const recentEmployees = page.content;
+          byId('recentEmployeesList').innerHTML = recentEmployees.length
+            ? recentEmployees.map((employee) => `<li><button class="recent-employee-link" data-id="${employee.id}" type="button">${escapeHtml(employee.name)}</button><span class="recent-employee-meta">${escapeHtml(employee.departmentName)} · ${escapeHtml(formatDateTime(employee.createdDate))}</span></li>`).join('')
+            : '<li class="muted">No employees have been added yet.</li>';
+          byId('recentEmployeesList').querySelectorAll('.recent-employee-link').forEach((button) => button.addEventListener('click', () => {
+            openEmployeeProfile(button.dataset.id);
+          }));
+        } catch (error) {
+          byId('overviewEmployeeCount').textContent = '—';
+          byId('recentEmployeesList').innerHTML = `<li class="muted">${escapeHtml(error.message)}</li>`;
+        }
+      }
+
       async function loadArchive() {
         if (state.role !== 'ADMIN') return;
         try {
@@ -177,6 +196,7 @@
           if (byId('employeeRows').children.length === 1 && state.page > 0) state.page -= 1;
           await loadArchive();
           await loadEmployees();
+          await loadOverview();
           notice(byId('appNotice'), `${employee.name} moved to the archive.`, 'success');
         } catch (error) {
           notice(byId('appNotice'), error.message, 'error');
@@ -190,6 +210,7 @@
           state.page = 0;
           await loadArchive();
           await loadEmployees();
+          await loadOverview();
           notice(byId('appNotice'), `${employee.name} restored to the active directory.`, 'success');
         } catch (error) {
           notice(byId('appNotice'), error.message, 'error');
@@ -296,6 +317,7 @@
           notice(byId('appNotice'), 'Employee deleted.', 'success');
           if (byId('employeeRows').children.length === 1 && state.page > 0) state.page -= 1;
           await loadEmployees();
+          await loadOverview();
         } catch (error) { notice(byId('appNotice'), error.message, 'error'); }
       }
 
@@ -309,7 +331,8 @@
           }
           state.page = 0;
           notice(byId('appNotice'), `Department "${department.name}" deleted.`, 'success');
-          await Promise.all([loadDepartments(), loadEmployees()]);
+          await loadDepartments();
+          await Promise.all([loadEmployees(), loadOverview()]);
         } catch (error) {
           notice(byId('appNotice'), error.message, 'error');
         }
@@ -526,7 +549,7 @@
             body: JSON.stringify(employees)
           });
           state.page = 0;
-          await loadEmployees();
+          await Promise.all([loadEmployees(), loadOverview()]);
           notice(byId('appNotice'), `Imported ${result.inserted} employee${result.inserted === 1 ? '' : 's'}.`, 'success');
         } catch (error) {
           notice(byId('appNotice'), error.message, 'error');
@@ -565,7 +588,10 @@
         try { await importEmployeesCsv(event.target.files[0]); }
         finally { event.target.value = ''; }
       });
-      byId('refreshButton').addEventListener('click', () => { loadEmployees(); loadDepartments(); });
+      byId('refreshButton').addEventListener('click', async () => {
+        await Promise.all([loadDepartments(), loadArchive()]);
+        await Promise.all([loadEmployees(), loadOverview()]);
+      });
       byId('refreshArchiveButton').addEventListener('click', loadArchive);
       byId('previousButton').addEventListener('click', () => { if (state.page > 0) { state.page -= 1; loadEmployees(); } });
       byId('nextButton').addEventListener('click', () => { if (state.page + 1 < state.totalPages) { state.page += 1; loadEmployees(); } });
@@ -600,7 +626,7 @@
           closeModal();
           state.page = 0;
           notice(byId('appNotice'), id ? 'Employee updated.' : 'Employee created.', 'success');
-          await loadEmployees();
+          await Promise.all([loadEmployees(), loadOverview()]);
         } catch (error) { notice(byId('appNotice'), error.message, 'error'); }
       });
 
@@ -614,7 +640,8 @@
           });
           closeModal();
           notice(byId('appNotice'), id ? 'Department renamed.' : 'Department created.', 'success');
-          await Promise.all([loadDepartments(), loadEmployees()]);
+          await loadDepartments();
+          await Promise.all([loadEmployees(), loadOverview()]);
         } catch (error) { notice(byId('appNotice'), error.message, 'error'); }
       });
 

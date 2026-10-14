@@ -41,6 +41,17 @@
         <h1>Employee directory</h1>
         <p>Browse your people, search by name, and keep employee details up to date.</p>
       </div>
+      <section class="overview-section" aria-labelledby="overviewTitle">
+        <div id="overviewTitle" class="eyebrow overview-title">At a glance</div>
+        <div class="overview-grid">
+          <article class="card overview-stat"><span>Active employees</span><strong id="overviewEmployeeCount">—</strong></article>
+          <article class="card overview-stat"><span>Departments</span><strong id="overviewDepartmentCount">—</strong></article>
+          <section class="card overview-recent" aria-labelledby="recentEmployeesTitle">
+            <div id="recentEmployeesTitle" class="card-title">Recently added</div>
+            <ul id="recentEmployeesList" class="recent-employee-list"><li class="muted">Loading recent employees…</li></ul>
+          </section>
+        </div>
+      </section>
       <div id="appNotice" class="notice"></div>
       <div class="toolbar">
         <label class="searchbox"><span>⌕</span><input id="searchInput" type="search" placeholder="Search employees by name" aria-label="Search employees by name"></label>
