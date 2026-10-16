@@ -126,6 +126,14 @@
     .profile-grid > div { min-width:0; padding:12px; border:1px solid #273851; background:#0f1928; border-radius:10px; }
     .profile-grid dt { color:var(--muted); font-size:11px; margin-bottom:5px; }
     .profile-grid dd { margin:0; overflow-wrap:anywhere; font-size:13px; }
+    .history-section { margin-top:19px; padding-top:16px; border-top:1px solid var(--line); }
+    .employee-history-list { list-style:none; display:grid; gap:9px; max-height:240px; overflow:auto; margin:10px 0 0; padding:0; }
+    .employee-history-event { padding:10px 12px; border:1px solid #273851; background:#0f1928; border-radius:10px; }
+    .employee-history-heading { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+    .employee-history-heading strong { font-size:12px; }
+    .employee-history-heading time, .employee-history-actor { color:var(--muted); font-size:11px; }
+    .employee-history-event p { margin:6px 0; overflow-wrap:anywhere; font-size:12px; }
+    .modal { max-height:calc(100vh - 40px); overflow:auto; }
     .muted { color:var(--muted); }
     .hidden { display:none !important; }
     .loading { opacity:.65; pointer-events:none; }

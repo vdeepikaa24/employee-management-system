@@ -304,11 +304,15 @@
         ['profileName', 'profileEmail', 'profileJobTitle', 'profilePhoneNumber', 'profileHireDate', 'profileDepartment', 'profileCreatedBy',
           'profileCreatedDate', 'profileModifiedBy', 'profileModifiedDate']
           .forEach((fieldId) => { byId(fieldId).textContent = 'Loading…'; });
+        byId('employeeHistoryList').innerHTML = '<li class="muted">Loading history…</li>';
         modalBackdrop.classList.add('open');
         byId('closeModalButton').focus();
 
         try {
-          const employee = await api(`/api/employees/${id}`);
+          const [employee, history] = await Promise.all([
+            api(`/api/employees/${id}`),
+            api(`/api/employees/${id}/history`)
+          ]);
           byId('profileName').textContent = employee.name || '—';
           byId('profileEmail').textContent = employee.email || '—';
           byId('profileJobTitle').textContent = employee.jobTitle || '—';
@@ -321,9 +325,26 @@
           byId('profileCreatedDate').textContent = formatDateTime(employee.createdDate);
           byId('profileModifiedBy').textContent = employee.lastModifiedBy || '—';
           byId('profileModifiedDate').textContent = formatDateTime(employee.lastModifiedDate);
+          renderEmployeeHistory(history);
         } catch (error) {
           notice(byId('profileNotice'), error.message, 'error');
+          byId('employeeHistoryList').innerHTML = `<li class="muted">${escapeHtml(error.message)}</li>`;
         }
+      }
+
+      function renderEmployeeHistory(events) {
+        const actionLabels = {
+          BASELINE: 'Tracking started', CREATED: 'Created', UPDATED: 'Updated', ARCHIVED: 'Archived',
+          RESTORED: 'Restored', DELETED: 'Deleted'
+        };
+        byId('employeeHistoryList').innerHTML = events.length
+          ? events.map((event) => `
+              <li class="employee-history-event">
+                <div class="employee-history-heading"><strong>${escapeHtml(actionLabels[event.action] || event.action)}</strong><time>${escapeHtml(formatDateTime(event.changedAt))}</time></div>
+                <p>${escapeHtml(event.summary)}</p>
+                <div class="employee-history-actor">By ${escapeHtml(event.changedBy)}</div>
+              </li>`).join('')
+          : '<li class="muted">No change history has been recorded for this employee yet.</li>';
       }
 
       function openEmployeeModal(employee = null) {

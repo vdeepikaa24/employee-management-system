@@ -22,14 +22,17 @@ public class ArchiveService {
     private final JdbcTemplate archiveJdbcTemplate;
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
+    private final EmployeeHistoryService historyService;
 
     public ArchiveService(
             @Qualifier("archiveJdbcTemplate") JdbcTemplate archiveJdbcTemplate,
             EmployeeRepository employeeRepository,
-            DepartmentRepository departmentRepository) {
+            DepartmentRepository departmentRepository,
+            EmployeeHistoryService historyService) {
         this.archiveJdbcTemplate = archiveJdbcTemplate;
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
+        this.historyService = historyService;
     }
 
     @PostConstruct
@@ -67,6 +70,8 @@ public class ArchiveService {
                 ));
 
         try {
+            historyService.record(employee.getId(), employee.getName(), "ARCHIVED",
+                    "Employee moved to the archive.");
             employeeRepository.delete(employee);
             employeeRepository.flush();
             archiveJdbcTemplate.update("""
@@ -128,6 +133,9 @@ public class ArchiveService {
         employee.setHireDate(snapshot.hireDate());
         employee.setDepartment(department);
         Employee restored = employeeRepository.saveAndFlush(employee);
+        historyService.copyHistory(snapshot.id(), restored.getId());
+        historyService.record(restored.getId(), restored.getName(), "RESTORED",
+                "Employee restored from the archive.");
 
         archiveJdbcTemplate.update(
                 "DELETE FROM archived_employees WHERE id = ?", id);

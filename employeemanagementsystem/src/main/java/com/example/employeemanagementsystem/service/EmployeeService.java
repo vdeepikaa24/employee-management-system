@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Objects;
 
 @Service
 public class EmployeeService {
@@ -26,14 +28,17 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
+    private final EmployeeHistoryService historyService;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     public EmployeeService(EmployeeRepository employeeRepository,
-                           DepartmentRepository departmentRepository) {
+                           DepartmentRepository departmentRepository,
+                           EmployeeHistoryService historyService) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
+        this.historyService = historyService;
     }
 
     @Transactional(readOnly = true)
@@ -94,17 +99,32 @@ public class EmployeeService {
         employee.setEmail(request.email());
         setJobDetails(employee, request);
         employee.setDepartment(getDepartment(request.departmentId()));
-        return toResponse(employeeRepository.save(employee));
+        Employee saved = employeeRepository.saveAndFlush(employee);
+        historyService.record(saved.getId(), saved.getName(), "CREATED",
+                "Employee added to " + saved.getDepartment().getName() + ".");
+        return toResponse(saved);
     }
 
     @Transactional
     public EmployeeResponse update(Long id, EmployeeRequest request) {
         Employee employee = getEmployee(id);
+        List<String> changes = new ArrayList<>();
+        addChange(changes, "Name", employee.getName(), request.name());
+        addChange(changes, "Email", employee.getEmail(), request.email());
+        Department newDepartment = getDepartment(request.departmentId());
+        addChange(changes, "Department", employee.getDepartment().getName(), newDepartment.getName());
+        addChange(changes, "Job title", employee.getJobTitle(), normalizeOptionalText(request.jobTitle()));
+        addChange(changes, "Phone number", employee.getPhoneNumber(), normalizeOptionalText(request.phoneNumber()));
+        addChange(changes, "Hire date", employee.getHireDate(), request.hireDate());
         employee.setName(request.name());
         employee.setEmail(request.email());
         setJobDetails(employee, request);
-        employee.setDepartment(getDepartment(request.departmentId()));
-        return toResponse(employeeRepository.save(employee));
+        employee.setDepartment(newDepartment);
+        Employee saved = employeeRepository.saveAndFlush(employee);
+        if (!changes.isEmpty()) {
+            historyService.record(saved.getId(), saved.getName(), "UPDATED", String.join("; ", changes) + ".");
+        }
+        return toResponse(saved);
     }
 
     @Transactional
@@ -118,6 +138,8 @@ public class EmployeeService {
             employee.setDepartment(departmentRepository.getReferenceById(
                     request.departmentId()));
             entityManager.persist(employee);
+            historyService.record(employee.getId(), employee.getName(), "CREATED",
+                    "Employee imported into " + employee.getDepartment().getName() + ".");
 
             if ((i + 1) % BATCH_SIZE == 0) {
                 entityManager.flush();
@@ -131,7 +153,9 @@ public class EmployeeService {
 
     @Transactional
     public void deleteById(Long id) {
-        employeeRepository.delete(getEmployee(id));
+        Employee employee = getEmployee(id);
+        historyService.record(employee.getId(), employee.getName(), "DELETED", "Employee record deleted.");
+        employeeRepository.delete(employee);
     }
 
     private Employee getEmployee(Long id) {
@@ -155,6 +179,17 @@ public class EmployeeService {
     private String normalizeOptionalText(String value) {
         if (value == null || value.isBlank()) return null;
         return value.trim();
+    }
+
+    private void addChange(List<String> changes, String label, Object oldValue, Object newValue) {
+        if (!Objects.equals(oldValue, newValue)) {
+            changes.add(label + " changed from " + displayValue(oldValue)
+                    + " to " + displayValue(newValue));
+        }
+    }
+
+    private String displayValue(Object value) {
+        return value == null || value.toString().isBlank() ? "(empty)" : value.toString();
     }
 
     private EmployeeResponse toResponse(Employee employee) {

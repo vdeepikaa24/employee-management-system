@@ -2,9 +2,11 @@ package com.example.employeemanagementsystem.controller;
 
 import com.example.employeemanagementsystem.dto.EmployeeRequest;
 import com.example.employeemanagementsystem.dto.EmployeeResponse;
+import com.example.employeemanagementsystem.EmployeeHistoryEvent;
 import com.example.employeemanagementsystem.projection.EmployeeSummary;
 import com.example.employeemanagementsystem.projection.EmployeeView;
 import com.example.employeemanagementsystem.service.EmployeeService;
+import com.example.employeemanagementsystem.service.EmployeeHistoryService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -23,9 +25,11 @@ public class EmployeeController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final EmployeeService employeeService;
+    private final EmployeeHistoryService historyService;
 
-    public EmployeeController(EmployeeService employeeService) {
+    public EmployeeController(EmployeeService employeeService, EmployeeHistoryService historyService) {
         this.employeeService = employeeService;
+        this.historyService = historyService;
     }
 
     @GetMapping
@@ -79,6 +83,11 @@ public class EmployeeController {
     @GetMapping("/{id}")
     public EmployeeResponse getEmployeeById(@PathVariable Long id) {
         return employeeService.findById(id);
+    }
+
+    @GetMapping("/{id}/history")
+    public List<EmployeeHistoryEvent> getEmployeeHistory(@PathVariable Long id) {
+        return historyService.findByEmployeeId(id);
     }
 
     @PostMapping
